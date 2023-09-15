@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from aioresponses import aioresponses
+from xml.etree import ElementTree
 
 from boedb.client import get_http_client_session
 from boedb.diario_boe.extract import (
@@ -17,26 +18,27 @@ from boedb.diario_boe.models import Article, DaySummary
 async def test_extract_boe_document_makes_request():
     url = "https://www.boe.es/diario_boe/xml.php?id=doc_id"
     with aioresponses() as mock_server:
-        mock_server.get(url, status=200, body="test_doc")
+        mock_server.get(url, status=200, body="<xml></xml>")
         async with get_http_client_session() as client:
-            with mock.patch("xmltodict.parse"):
-                await extract_boe_document(mock.Mock(), "doc_id", client)
-                mock_server.assert_called_once_with(url)
+            await extract_boe_document(mock.Mock(), "doc_id", client)
+            mock_server.assert_called_once_with(url)
 
 
 @pytest.mark.asyncio
 async def test_extract_boe_document_inits_cls_from_xml_response():
     url = "https://www.boe.es/diario_boe/xml.php?id=doc_id"
     xml_response = "<xml>response</xml>"
-    data = {"xml": "response"}
+    root = mock.Mock()
     test_cls = mock.Mock()
     with aioresponses() as mock_server:
         mock_server.get(url, status=200, body=xml_response)
         async with get_http_client_session() as client:
-            with mock.patch("xmltodict.parse", return_value=data) as parse_mock:
+            with mock.patch(
+                "xml.etree.ElementTree.fromstring", return_value=root
+            ) as xml_from_string:
                 await extract_boe_document(test_cls, "doc_id", client)
-                parse_mock.assert_called_once_with(xml_response)
-                test_cls.from_dict.assert_called_once_with(data)
+                xml_from_string.assert_called_once_with(xml_response)
+                test_cls.from_xml.assert_called_once_with(root)
 
 
 @pytest.mark.asyncio
@@ -45,7 +47,9 @@ async def test_summary_extractor_extracts_doc_for_date():
     summary_id = "BOE-S-20230914"
     mock_client = mock.Mock()
     extracted = mock.Mock()
-    with mock.patch("boedb.diario_boe.extract.extract_boe_document", return_value=extracted) as extract_mock:
+    with mock.patch(
+        "boedb.diario_boe.extract.extract_boe_document", return_value=extracted
+    ) as extract_mock:
         extractor = DiarioBoeSummaryExtractor(date, mock_client)
 
         result = await extractor()
@@ -71,7 +75,9 @@ async def test_articles_extractor_extracts_items_in_process():
     item = mock.Mock(entry_id=1)
     extracted = mock.Mock()
 
-    with mock.patch("boedb.diario_boe.extract.extract_boe_document", return_value=extracted) as extract_mock:
+    with mock.patch(
+        "boedb.diario_boe.extract.extract_boe_document", return_value=extracted
+    ) as extract_mock:
         async with get_http_client_session() as client:
             extractor = DiarioBoeArticlesExtractor(summary, client)
             processed = await extractor.process(item)

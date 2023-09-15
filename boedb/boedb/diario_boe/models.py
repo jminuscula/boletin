@@ -2,6 +2,11 @@ import functools
 from datetime import datetime
 
 from boedb.processors.transformers import extract_keys_with_metadata
+from boedb.processors.xml import (
+    find_node_with_ancestors,
+    node_children_to_dict,
+    node_text_content,
+)
 
 
 class DocumentError(Exception):
@@ -10,12 +15,12 @@ class DocumentError(Exception):
 
 def check_error(fn):
     @functools.wraps(fn)
-    def from_dict(cls, data):
-        if isinstance(data, dict) and "error" in data:
-            raise DocumentError(data["error"].get("descripcion", "unknown error"))
-        return fn(cls, data)
+    def from_xml(cls, root):
+        if root.tag == "error":
+            raise DocumentError(root.find(".//descripcion").text or "unknown error")
+        return fn(cls, root)
 
-    return from_dict
+    return from_xml
 
 
 class DaySummary:
@@ -27,20 +32,17 @@ class DaySummary:
 
     @classmethod
     @check_error
-    def from_dict(cls, data):
-        sumario = data["sumario"]
-        summary_id = sumario["diario"]["sumario_nbo"]["@id"]
-        summary_metadata = sumario["meta"]
+    def from_xml(cls, root):
+        summary_id = root.find("diario/sumario_nbo").attrib.get("id")
+        summary_metadata = node_children_to_dict(root.find("meta"))
 
         items = []
-        secciones = sumario["diario"]["seccion"]
-        if type(secciones) is not list:
-            secciones = [secciones]
-
-        for item, meta in extract_keys_with_metadata(sumario["diario"], "item", "diario"):
-            item = DaySummaryEntry(summary_id, item["@id"], meta, item["titulo"])
+        for item, ancestors in find_node_with_ancestors(root, "item"):
+            meta = {a.tag: a.attrib for a in ancestors}
+            meta |= item.attrib
+            title = item.find(".//titulo").text
+            item = DaySummaryEntry(summary_id, item.attrib["id"], meta, title)
             items.append(item)
-
         return cls(summary_id, summary_metadata, items)
 
     def as_dict(self):
@@ -68,7 +70,9 @@ class DaySummaryEntry:
 class Article:
     def __init__(self, article_id, metadata, content, sequence=None, total=None):
         self.article_id = article_id
-        self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
+        self.publication_date = datetime.strptime(
+            metadata["fecha_publicacion"], "%Y%m%d"
+        )
         self.metadata = metadata
 
         self.title = metadata.get("titulo")
@@ -83,6 +87,17 @@ class Article:
 
     @classmethod
     @check_error
+    def from_xml(cls, root):
+        article_id = root.find(".//identificador").text
+        metadata = {
+            **node_children_to_dict(root.find("./metadatos")),
+            **node_children_to_dict(root.find("./analisis")),
+        }
+        content = node_text_content(root.find(".//texto"))
+        return cls(article_id, metadata, content)
+
+    @classmethod
+    @check_error
     def from_dict(cls, data):
         article_id = data["documento"]["metadatos"]["identificador"]
         metadata = {
@@ -93,7 +108,7 @@ class Article:
         return cls(article_id, metadata, content)
 
     def split(self, max_length=2048):
-        fragments = [self.fragments]
+        fragments = [self.content]
         total = len(fragments)
         return [
             self.__class__(self.article_id, self.metadata, fragment, seq, total)

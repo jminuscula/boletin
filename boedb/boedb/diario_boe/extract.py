@@ -1,6 +1,5 @@
 import itertools
-
-import xmltodict
+from xml.etree import ElementTree
 
 from boedb.diario_boe.models import Article, DaySummary
 from boedb.processors.batch import BatchProcessor
@@ -9,12 +8,11 @@ BASE_URL = "https://www.boe.es"
 
 
 async def extract_boe_document(cls, doc_id, session):
-    # breakpoint()
     url = f"{BASE_URL}/diario_boe/xml.php?id={doc_id}"
     async with session.get(url) as resp:
         xml = await resp.text()
-    data = xmltodict.parse(xml)
-    return cls.from_dict(data)
+    root = ElementTree.fromstring(xml)
+    return cls.from_xml(root)
 
 
 class DiarioBoeSummaryExtractor:
