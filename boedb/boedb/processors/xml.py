@@ -9,6 +9,8 @@ def node_children_to_dict(root):
 
 
 def node_text_content(root):
+    if not len(root):
+        return root.text
     return "\n\n".join([ElementTree.tostring(n, "unicode") for n in root])
 
 
