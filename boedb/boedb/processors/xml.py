@@ -5,7 +5,7 @@ import xmltodict
 
 def node_children_to_dict(root):
     """Return all child nodes and their text as a dictionary."""
-    return xmltodict.parse(ElementTree.tostring(root))[root.tag]
+    return xmltodict.parse(ElementTree.tostring(root))[root.tag] or {}
 
 
 def node_text_content(root):

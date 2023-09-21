@@ -42,6 +42,12 @@ def test_node_children_to_dict_ok(xml_tree):
     }
 
 
+def test_node_children_to_dict_returns_empty_dict():
+    root = ElementTree.fromstring("<xml><meta/></xml>")
+    data = node_children_to_dict(root.find("./meta"))
+    assert data == {}
+
+
 def test_node_text_content_returns_all_children():
     xml = ElementTree.fromstring("<xml><one>data1</one><two>data2</two></xml>")
     text = node_text_content(xml)

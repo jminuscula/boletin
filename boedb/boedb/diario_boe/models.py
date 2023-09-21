@@ -93,7 +93,7 @@ class Article:
             **node_children_to_dict(root.find("./metadatos")),
             **node_children_to_dict(root.find("./analisis")),
         }
-        content = node_text_content(root.find(".//texto"))
+        content = node_text_content(root.find("./texto"))
         return cls(article_id, metadata, content)
 
     @classmethod
