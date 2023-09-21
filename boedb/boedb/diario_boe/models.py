@@ -1,3 +1,4 @@
+import re
 import functools
 from datetime import datetime
 
@@ -107,8 +108,58 @@ class Article:
         content = data["documento"].get("texto", "")
         return cls(article_id, metadata, content)
 
-    def split(self, max_length=2048):
-        fragments = [self.content]
+    @staticmethod
+    def _split_text_smart(text, max_length):
+        re_breaks = (
+            r"<(.*?)>\s*(ANEXO|ANEJO).*?</(.*?)>",
+            r"<(.*?)>\s*Artículo.*?</(.*?)>",
+            r"<(.*?)>\s*Título.*?</(.*?)>",
+            r"<(.*?)>\s*(Reunidos|Manifiestan|Exponen|Cláusulas).*?</(.*?)>",
+            r"<(.*?)>\s*Fundamentos de Derecho.*?</(.*?)>",
+            r"<table(.*?)>(.*?)</table>",
+            r"<(.*?)>\s*Fundamentos jurídicos.*?</(.*?)>",
+            (
+                r"<(.*?)>\s*"
+                r"(Primer[oa]|Segund[oa]|Tercer[oa]|Cuart[oa]|Quint[oa]|Sext[oa]|Séptim[oa]"
+                r"|Octav[oa]|Noven[oa]|Décim[oa]|Undécim[oa]|Duodécim[oa]"
+                r"|Decimotercer[oa]|Decimocuart[oa]|Decimoquint[oa]|Decimosext[oa]"
+                r"|Decimoséptim[oa]|Decimoctav[oa]|Decimonoven[oa]|Vigésim[oa]"
+                r"|Único)"
+                r".*?</(.*?)>"
+            ),
+        )
+
+        # try to split on text structure
+        for break_exp in re_breaks:
+            for match in re.finditer(break_exp, text, re.IGNORECASE):
+                # only split if break point doesn't yield highly unequal chunks
+                if 0.2 < (match.start() / len(text)) < 0.8:
+                    return text[: match.start()], text[match.start() :]
+
+        # try to split naively on middle paragraph to avoid breaking html
+        closing_tags = list(re.finditer("</p>", text[:max_length]))
+        if closing_tags:
+            match = closing_tags[len(closing_tags) // 2]
+            return text[: match.end()], text[match.end() :]
+
+        # split desperately
+        if len(text) < (max_length * 2):
+            middle = len(text) // 2
+            return text[:middle], text[middle:]
+        return text[:max_length], text[max_length:]
+
+    @staticmethod
+    def _split_text(text, max_length):
+        fragments = [text]
+        while any(len(fr) > max_length for fr in fragments):
+            idx_max = max(range(len(fragments)), key=lambda i: len(fragments[i]))
+            fragment = fragments.pop(idx_max)
+            sub_fragments = Article._split_text_smart(fragment, max_length)
+            fragments = fragments[:idx_max] + list(sub_fragments) + fragments[idx_max:]
+        return fragments
+
+    def split(self, max_length=2048 * 3):
+        fragments = Article._split_text(self.content, max_length)
         total = len(fragments)
         return [
             self.__class__(self.article_id, self.metadata, fragment, seq, total)

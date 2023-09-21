@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+import textwrap
 from xml.etree import ElementTree
 
 from boedb.diario_boe.models import (
@@ -110,3 +111,86 @@ def test_article_with_multiple_text_inits_ok(article_mtext_data):
     assert article.content.startswith(
         """<p class="parrafo">La regulación de los distribuidores de seguros"""
     )
+
+
+def test_article_splits_produces_articles(article_data):
+    article = Article.from_xml(article_data)
+    fragment_contents = ["text one", "text two"]
+    with mock.patch.object(Article, "_split_text", return_value=fragment_contents):
+        fragments = article.split()
+
+    assert fragments[0].article_id == fragments[1].article_id == article.article_id
+    assert fragments[0].metadata == fragments[1].metadata == article.metadata
+    assert fragments[0].content, fragments[1].content == fragment_contents
+    assert (fragments[0].sequence, fragments[0].total) == (1, 2)
+    assert (fragments[1].sequence, fragments[1].total) == (2, 2)
+
+
+def test_article_splits_doesnt_split_below_max(article_data):
+    article = Article.from_xml(article_data)
+    fragments = article.split(max_length=1e6)
+    assert len(fragments) == 1
+
+
+def test_article_splits_on_break():
+    content = textwrap.dedent(
+        """
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>Artículo 1.</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        """
+    )
+    metadata = {
+        "fecha_publicacion": "20230921",
+        "titulo": "test",
+    }
+    article = Article("test-id", metadata, content)
+    fragments = article.split(max_length=200)
+    assert len(fragments) == 2
+    assert fragments[1].content.startswith("<p>Artículo 1.</p>")
+
+
+def test_article_splits_on_middle_paragraph():
+    content = textwrap.dedent(
+        """
+        <p>Aotal_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>Botal_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        <p>total_length_of_the_line_is_50_characters</p>
+        """
+    )
+    metadata = {
+        "fecha_publicacion": "20230921",
+        "titulo": "test",
+    }
+    article = Article("test-id", metadata, content)
+    fragments = article.split(max_length=200)
+    assert len(fragments) == 2
+    assert fragments[1].content.startswith("\n<p>B")
+
+
+def test_article_splits_content_by_half():
+    content = textwrap.dedent(
+        """
+        <p>Aotal_length_of_the_line_is_50_charactersxxx
+        xxxtotal_length_of_the_line_is_50_charactersxxx
+        xxxtotal_length_of_the_line_is_50_charactersxxx
+        ###total_length_of_the_line_is_50_charactersxxx
+        xxxtotal_length_of_the_line_is_50_charactersxxx
+        xxxtotal_length_of_the_line_is_50_characters</p>
+        """
+    )
+    metadata = {
+        "fecha_publicacion": "20230921",
+        "titulo": "test",
+    }
+    article = Article("test-id", metadata, content)
+    fragments = article.split(max_length=200)
+    assert len(fragments) == 2
+    assert fragments[1].content.startswith("###")
