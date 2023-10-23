@@ -49,10 +49,7 @@ async def process_diario_boe_for_date(date):
             loader=None,
         ).run()
 
-        for article in articles:
-            print(article)
-
 
 if __name__ == "__main__":
-    date = datetime(2023, 9, 8)
+    date = datetime(2023, 10, 23)
     asyncio.run(process_diario_boe_for_date(date), debug=True)

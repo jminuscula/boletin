@@ -97,17 +97,6 @@ class Article:
         content = node_text_content(root.find("./texto"))
         return cls(article_id, metadata, content)
 
-    @classmethod
-    @check_error
-    def from_dict(cls, data):
-        article_id = data["documento"]["metadatos"]["identificador"]
-        metadata = {
-            **data["documento"]["metadatos"],
-            **(data["documento"].get("analisis") or {}),
-        }
-        content = data["documento"].get("texto", "")
-        return cls(article_id, metadata, content)
-
     @staticmethod
     def _split_text_smart(text, max_length):
         re_breaks = (

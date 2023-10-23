@@ -87,6 +87,18 @@ def test_day_summary_serializes_to_dict():
     }
 
 
+def test_day_summary_entry_inits_ok():
+    summary_id = "summary_id"
+    entry_id = "entry_id"
+    metadata = {"fecha": "14/09/2023"}
+    title = "entry_title"
+    entry = DaySummaryEntry(summary_id, entry_id, metadata, title)
+    assert entry.summary_id == summary_id
+    assert entry.entry_id == entry_id
+    assert entry.metadata == metadata
+    assert entry.title == title
+
+
 def test_article_inits_ok(article_data):
     article = Article.from_xml(article_data)
     assert article.article_id == "BOE-A-2023-18664"
@@ -193,4 +205,22 @@ def test_article_splits_content_by_half():
     article = Article("test-id", metadata, content)
     fragments = article.split(max_length=200)
     assert len(fragments) == 2
+    assert fragments[1].content.startswith("###")
+
+
+def test_article_splits_content_desperately():
+    content = textwrap.dedent(
+        """
+        <p>this_line_is_25_chars
+        ###this_line_is_25_chars
+        this_line_is_25_chars</p>
+        """
+    )
+    metadata = {
+        "fecha_publicacion": "20230921",
+        "titulo": "test",
+    }
+    article = Article("test-id", metadata, content.strip())
+    fragments = article.split(max_length=25)
+    assert len(fragments) == 3
     assert fragments[1].content.startswith("###")
