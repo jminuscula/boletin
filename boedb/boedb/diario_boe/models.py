@@ -1,5 +1,5 @@
-import re
 import functools
+import re
 from datetime import datetime
 
 from boedb.processors.transformers import extract_keys_with_metadata
@@ -71,9 +71,7 @@ class DaySummaryEntry:
 class Article:
     def __init__(self, article_id, metadata, content, sequence=None, total=None):
         self.article_id = article_id
-        self.publication_date = datetime.strptime(
-            metadata["fecha_publicacion"], "%Y%m%d"
-        )
+        self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
         self.metadata = metadata
 
         self.title = metadata.get("titulo")

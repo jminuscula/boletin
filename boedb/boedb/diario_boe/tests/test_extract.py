@@ -1,9 +1,9 @@
 from datetime import datetime
 from unittest import mock
+from xml.etree import ElementTree
 
 import pytest
 from aioresponses import aioresponses
-from xml.etree import ElementTree
 
 from boedb.client import get_http_client_session
 from boedb.diario_boe.extract import (
@@ -33,9 +33,7 @@ async def test_extract_boe_document_inits_cls_from_xml_response():
     with aioresponses() as mock_server:
         mock_server.get(url, status=200, body=xml_response)
         async with get_http_client_session() as client:
-            with mock.patch(
-                "xml.etree.ElementTree.fromstring", return_value=root
-            ) as xml_from_string:
+            with mock.patch("xml.etree.ElementTree.fromstring", return_value=root) as xml_from_string:
                 await extract_boe_document(test_cls, "doc_id", client)
                 xml_from_string.assert_called_once_with(xml_response)
                 test_cls.from_xml.assert_called_once_with(root)
@@ -47,9 +45,7 @@ async def test_summary_extractor_extracts_doc_for_date():
     summary_id = "BOE-S-20230914"
     mock_client = mock.Mock()
     extracted = mock.Mock()
-    with mock.patch(
-        "boedb.diario_boe.extract.extract_boe_document", return_value=extracted
-    ) as extract_mock:
+    with mock.patch("boedb.diario_boe.extract.extract_boe_document", return_value=extracted) as extract_mock:
         extractor = DiarioBoeSummaryExtractor(date, mock_client)
 
         result = await extractor()
@@ -75,9 +71,7 @@ async def test_articles_extractor_extracts_items_in_process():
     item = mock.Mock(entry_id=1)
     extracted = mock.Mock()
 
-    with mock.patch(
-        "boedb.diario_boe.extract.extract_boe_document", return_value=extracted
-    ) as extract_mock:
+    with mock.patch("boedb.diario_boe.extract.extract_boe_document", return_value=extracted) as extract_mock:
         async with get_http_client_session() as client:
             extractor = DiarioBoeArticlesExtractor(summary, client)
             processed = await extractor.process(item)

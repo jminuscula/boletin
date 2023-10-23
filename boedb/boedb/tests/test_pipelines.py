@@ -1,5 +1,5 @@
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
 import pytest
 
@@ -40,18 +40,14 @@ async def test_process_diario_boe_for_date_runs_pipeline():
     ArtPipelineMock = mock.AsyncMock()
 
     with (
-        mock.patch(
-            "boedb.pipelines.get_http_client_session", return_value=get_client_mock
-        ),
+        mock.patch("boedb.pipelines.get_http_client_session", return_value=get_client_mock),
         mock.patch(
             "boedb.pipelines.DiarioBoeSummaryExtractor",
         ) as SummaryExtractorMock,
         mock.patch(
             "boedb.pipelines.DiarioBoeArticlesExtractor",
         ) as ArticlesExtractorMock,
-        mock.patch(
-            "boedb.pipelines.Pipeline", side_effect=[SumPipelineMock, ArtPipelineMock]
-        ) as PipelineMock,
+        mock.patch("boedb.pipelines.Pipeline", side_effect=[SumPipelineMock, ArtPipelineMock]) as PipelineMock,
     ):
         await process_diario_boe_for_date(dt)
 

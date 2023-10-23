@@ -1,10 +1,10 @@
 import os.path
+import textwrap
 from datetime import datetime
 from unittest import mock
+from xml.etree import ElementTree
 
 import pytest
-import textwrap
-from xml.etree import ElementTree
 
 from boedb.diario_boe.models import (
     Article,
@@ -53,9 +53,7 @@ def test_check_error_returns_document_error():
     def get_test_document(cls, root):
         return mock.Mock()
 
-    root = ElementTree.fromstring(
-        "<error><descripcion>test error</descripcion></error>"
-    )
+    root = ElementTree.fromstring("<error><descripcion>test error</descripcion></error>")
     with pytest.raises(DocumentError):
         get_test_document(None, root)
 
@@ -107,9 +105,7 @@ def test_article_inits_ok(article_data):
         article.title
         == """Resolución de 5 de agosto de 2023, conjunta de las Subsecretarías de Trabajo y Economía Social y de Inclusión, Seguridad Social y Migraciones, por la que se resuelve parcialmente la convocatoria de libre designación, efectuada por Resolución de 24 de marzo de 2023."""
     )
-    assert article.content.startswith(
-        """<p class="parrafo">Por Resolución de 24 de marzo de 2023"""
-    )
+    assert article.content.startswith("""<p class="parrafo">Por Resolución de 24 de marzo de 2023""")
 
 
 def test_article_with_multiple_text_inits_ok(article_mtext_data):
@@ -120,9 +116,7 @@ def test_article_with_multiple_text_inits_ok(article_mtext_data):
         article.title
         == """Circular 1/2023, de 30 de agosto, de la Dirección General de Seguros y Fondos de Pensiones, relativa al uso obligatorio de medios electrónicos para la práctica de comunicaciones y notificaciones con los mediadores de seguros, corredores de reaseguros y determinados mediadores de seguros complementarios."""
     )
-    assert article.content.startswith(
-        """<p class="parrafo">La regulación de los distribuidores de seguros"""
-    )
+    assert article.content.startswith("""<p class="parrafo">La regulación de los distribuidores de seguros""")
 
 
 def test_article_splits_produces_articles(article_data):
