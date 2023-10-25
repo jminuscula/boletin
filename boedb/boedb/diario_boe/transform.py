@@ -56,12 +56,12 @@ class DiarioBoeArticleTransformer(BatchProcessor):
         max_tokens = len(item.title) // 2
         title_summary_prompt = self.get_title_summary_prompt(item)
         item.title_summary = await self.llm_client.complete(title_summary_prompt, max_tokens=max_tokens)
-        item.title_summary_embeddings = await self.llm_client.get_embeddings(item.title_summary)
+        item.title_embedding = await self.llm_client.get_embeddings(item.title_summary)
 
         max_tokens = len(item.content) // 3
         summary_prompt = self.get_content_summary_prompt(item)
         item.summary = await self.llm_client.complete(summary_prompt, max_tokens=max_tokens)
-        item.embeddings = await self.llm_client.get_embeddings(item.content)
+        item.embedding = await self.llm_client.get_embeddings(item.content)
 
         return item
 

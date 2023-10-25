@@ -17,9 +17,7 @@ async def test_open_ai_client_post(api_key, http_session_mock):
     headers = {"Authorization": f"Bearer {api_key}"}
 
     await client.post(endpoint, payload)
-    http_session_mock.post.assert_called_once_with(
-        endpoint, json=payload, headers=headers
-    )
+    http_session_mock.post.assert_called_once_with(endpoint, json=payload, headers=headers)
 
 
 @pytest.mark.asyncio

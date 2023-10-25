@@ -1,12 +1,13 @@
 import asyncio
 from datetime import datetime
 
-from boedb.config import DiarioBoeConfig
 from boedb.client import get_http_client_session
+from boedb.config import DBConfig, DiarioBoeConfig
 from boedb.diario_boe.extract import (
     DiarioBoeArticlesExtractor,
     DiarioBoeSummaryExtractor,
 )
+from boedb.diario_boe.load import DiarioBoeArticlesLoader, DiarioBoeSummaryLoader
 from boedb.diario_boe.transform import DiarioBoeArticleTransformer
 
 
@@ -40,7 +41,7 @@ async def process_diario_boe_for_date(date):
         summary = await Pipeline(
             extractor=DiarioBoeSummaryExtractor(date, http_session),
             transformer=None,
-            loader=None,
+            loader=DiarioBoeSummaryLoader(DBConfig.DSN),
         ).run()
 
         articles = await Pipeline(
@@ -52,7 +53,7 @@ async def process_diario_boe_for_date(date):
             transformer=DiarioBoeArticleTransformer(
                 http_session, batch_size=DiarioBoeConfig.ARTICLE_TRANSFORM_BATCH_SIZE
             ),
-            loader=None,
+            loader=DiarioBoeArticlesLoader(DBConfig.DSN),
         ).run()
 
 
@@ -66,7 +67,7 @@ async def test_diario_boe_article_process():  # pragma: no cover
         articles = await Pipeline(
             extractor=DiarioBoeArticlesExtractor(summary, http_session, batch_size=1),
             transformer=DiarioBoeArticleTransformer(http_session, batch_size=1),
-            loader=None,
+            loader=DiarioBoeArticlesLoader(DBConfig.DSN),
         ).run()
 
     article = articles[0]

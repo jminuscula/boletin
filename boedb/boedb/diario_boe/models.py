@@ -1,4 +1,5 @@
 import functools
+import json
 import re
 from datetime import datetime
 
@@ -51,7 +52,7 @@ class DaySummary:
         return {
             "id": self.summary_id,
             "publication_date": self.publication_date,
-            "metadata": self.metadata,
+            "metadata": json.dumps(self.metadata),
         }
 
     def __repr__(self):
@@ -72,18 +73,16 @@ class DaySummaryEntry:
 class Article:
     def __init__(self, article_id, metadata, content, sequence=None, total=None):
         self.article_id = article_id
-        self.publication_date = datetime.strptime(
-            metadata["fecha_publicacion"], "%Y%m%d"
-        )
+        self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
         self.metadata = metadata
 
         self.title = metadata.get("titulo")
         self.title_summary = None
-        self.title_embeddings = None
+        self.title_embedding = None
 
         self.content = content
         self.summary = None
-        self.embeddings = None
+        self.embedding = None
         self.sequence = sequence
         self.total = total
 
@@ -155,6 +154,25 @@ class Article:
             self.__class__(self.article_id, self.metadata, fragment, seq, total)
             for seq, fragment in enumerate(fragments, 1)
         ]
+
+    def as_article_dict(self):
+        return {
+            "article_id": self.article_id,
+            "pubdate": self.publication_date,
+            "metadata": json.dumps(self.metadata),
+            "title": self.title,
+            "title_summary": self.title_summary,
+            "title_embedding": self.title_embedding,
+        }
+
+    def as_fragment_dict(self):
+        return {
+            "article_id": self.article_id,
+            "sequence": self.sequence,
+            "content": self.content,
+            "summary": self.summary,
+            "embedding": self.embedding,
+        }
 
     def __repr__(self):
         seq = f", {self.sequence}/{self.total}" if self.sequence else ""
