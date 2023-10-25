@@ -2,16 +2,13 @@ import functools
 import re
 from datetime import datetime
 
+from boedb.config import DiarioBoeConfig
 from boedb.processors.transformers import extract_keys_with_metadata
 from boedb.processors.xml import (
     find_node_with_ancestors,
     node_children_to_dict,
     node_text_content,
 )
-
-# We can't exceed LLM's max context tokens, so the original text
-# plus the generated outcome must be controlled
-ARTICLE_FRAGMENT_MAX_LENGTH = 8192
 
 
 class DocumentError(Exception):
@@ -57,7 +54,7 @@ class DaySummary:
             "metadata": self.metadata,
         }
 
-    def __str__(self):
+    def __repr__(self):
         return f"DaySummary({self.summary_id})"
 
 
@@ -68,14 +65,16 @@ class DaySummaryEntry:
         self.metadata = metadata or {}
         self.title = title
 
-    def __str__(self):
+    def __repr__(self):
         return f"DaySummaryEntry({self.summary_id}/{self.entry_id})"
 
 
 class Article:
     def __init__(self, article_id, metadata, content, sequence=None, total=None):
         self.article_id = article_id
-        self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
+        self.publication_date = datetime.strptime(
+            metadata["fecha_publicacion"], "%Y%m%d"
+        )
         self.metadata = metadata
 
         self.title = metadata.get("titulo")
@@ -149,7 +148,7 @@ class Article:
             fragments = fragments[:idx_max] + list(sub_fragments) + fragments[idx_max:]
         return fragments
 
-    def split(self, max_length=ARTICLE_FRAGMENT_MAX_LENGTH):
+    def split(self, max_length=DiarioBoeConfig.ARTICLE_FRAGMENT_MAX_LENGTH):
         fragments = Article._split_text(self.content, max_length)
         total = len(fragments)
         return [
@@ -157,6 +156,6 @@ class Article:
             for seq, fragment in enumerate(fragments, 1)
         ]
 
-    def __str__(self):
+    def __repr__(self):
         seq = f", {self.sequence}/{self.total}" if self.sequence else ""
         return f"Article({self.article_id}{seq})"

@@ -8,7 +8,7 @@ from boedb.processors.llm import OpenAiClient
 
 
 @pytest.mark.asyncio
-@mock.patch("boedb.processors.llm.OPENAI_API_KEY")
+@mock.patch("boedb.config.OpenAiConfig.API_KEY")
 async def test_open_ai_client_post(api_key, http_session_mock):
     client = OpenAiClient(http_session=http_session_mock)
 
@@ -17,11 +17,13 @@ async def test_open_ai_client_post(api_key, http_session_mock):
     headers = {"Authorization": f"Bearer {api_key}"}
 
     await client.post(endpoint, payload)
-    http_session_mock.post.assert_called_once_with(endpoint, json=payload, headers=headers)
+    http_session_mock.post.assert_called_once_with(
+        endpoint, json=payload, headers=headers
+    )
 
 
 @pytest.mark.asyncio
-@mock.patch("boedb.processors.llm.OPENAI_API_KEY")
+@mock.patch("boedb.config.OpenAiConfig.API_KEY")
 async def test_open_ai_client_completes_returns_completion(api_key):
     endpoint = "https://api.openai.com/v1/chat/completions"
     test_completion = "test completion"
@@ -47,7 +49,7 @@ async def test_open_ai_client_completes_returns_completion(api_key):
 
 
 @pytest.mark.asyncio
-@mock.patch("boedb.processors.llm.OPENAI_API_KEY")
+@mock.patch("boedb.config.OpenAiConfig.API_KEY")
 async def test_open_ai_client_get_embeddings(api_key):
     endpoint = "https://api.openai.com/v1/embeddings"
     test_input = "text"

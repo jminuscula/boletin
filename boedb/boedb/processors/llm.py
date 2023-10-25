@@ -1,9 +1,10 @@
 import random
 
+from boedb.config import OpenAiConfig
+
 COMPLETION_MODEL_NAME = "gpt-3.5-turbo-16k"
 EMEDDINGS_MODEL_NAME = "text-embedding-ada-002"
 BASE_URL = "https://api.openai.com/v1"
-OPENAI_API_KEY = "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"
 
 
 class OpenAiClient:
@@ -11,7 +12,7 @@ class OpenAiClient:
         self.http_session = http_session
 
     async def post(self, endpoint, payload):
-        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+        headers = {"Authorization": f"Bearer {OpenAiConfig.API_KEY}"}
         request = self.http_session.post(endpoint, json=payload, headers=headers)
         async with request as response:
             return await response.json()
