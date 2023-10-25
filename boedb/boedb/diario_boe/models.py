@@ -9,6 +9,10 @@ from boedb.processors.xml import (
     node_text_content,
 )
 
+# We can't exceed LLM's max context tokens, so the original text
+# plus the generated outcome must be controlled
+ARTICLE_FRAGMENT_MAX_LENGTH = 8192
+
 
 class DocumentError(Exception):
     pass
@@ -145,7 +149,7 @@ class Article:
             fragments = fragments[:idx_max] + list(sub_fragments) + fragments[idx_max:]
         return fragments
 
-    def split(self, max_length=2048 * 3):
+    def split(self, max_length=ARTICLE_FRAGMENT_MAX_LENGTH):
         fragments = Article._split_text(self.content, max_length)
         total = len(fragments)
         return [
