@@ -24,9 +24,10 @@ class BatchProcessor:
     async def process(self, item):
         raise NotImplementedError
 
-    async def process_in_batch(self):
+    async def process_in_batch(self, items=None):
         tasks = []
-        items = await self.gather()
+        if items is None:
+            items = await self.gather()
         for batch in batched(items, self.batch_size):
             async with asyncio.TaskGroup() as tg:
                 for item in batch:
