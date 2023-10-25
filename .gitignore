@@ -1,3 +1,8 @@
+# Project
+
+.env.secret
+
+
 # Other
 .DS_Store
 .vscode

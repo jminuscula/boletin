@@ -13,7 +13,8 @@ addopts = """
 source = ["boedb"]
 omit = [
   "test*.py",
-  "tests/__init__.py"
+  "tests/__init__.py",
+  "config.py",
 ]
 
 [tool.coverage.report]
