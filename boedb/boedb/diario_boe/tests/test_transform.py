@@ -56,21 +56,21 @@ async def test_diario_boe_article_transformer_process_title():
 @pytest.mark.asyncio
 async def test_diario_boe_article_transformer_process_title():
     test_summary = "test summary"
-    test_embeddings = [0.1, 0.2, 0.3]
+    test_embedding = [0.1, 0.2, 0.3]
 
     article = mock.Mock(title="title", content="content")
 
     llm_mock = mock.AsyncMock()
     with mock.patch("boedb.diario_boe.transform.OpenAiClient", return_value=llm_mock):
         llm_mock.complete.return_value = test_summary
-        llm_mock.get_embeddings.return_value = test_embeddings
+        llm_mock.get_embeddings.return_value = test_embedding
 
         transformer = DiarioBoeArticleTransformer(http_session=mock.AsyncMock())
         processed = await transformer.process(article)
 
     assert processed is article
     assert article.summary == test_summary
-    assert article.embeddings == test_embeddings
+    assert article.embedding == test_embedding
 
     summary_prompt = transformer.get_content_summary_prompt(article)
     max_tokens = len(article.content) // 3

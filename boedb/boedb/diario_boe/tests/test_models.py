@@ -81,7 +81,7 @@ def test_day_summary_serializes_to_dict():
     assert summary.as_dict() == {
         "id": "summary_id",
         "publication_date": datetime(2023, 9, 14),
-        "metadata": metadata,
+        "metadata": '{"fecha": "14/09/2023"}',
     }
 
 

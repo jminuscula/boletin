@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from dotenv import dotenv_values
 
 config = {
-    **dotenv_values(".env.shared"),  # common configurable settings
+    **dotenv_values(".env.development"),  # common configurable settings
     **dotenv_values(".env.secret"),  # API keys
     **os.environ,  # environment overrides
 }
@@ -22,6 +22,14 @@ class DiarioBoeConfig:
     # We can't exceed LLM's max context tokens, so the original text
     # plus the generated outcome must be controlled
     ARTICLE_FRAGMENT_MAX_LENGTH = 8192
+
+
+@dataclass
+class DBConfig:
+    USER = config["PG_USER"]
+    PASSWORD = config["PG_PASSWORD"]
+    DBNAME = config["PG_DBNAME"]
+    DSN = f"user={USER} password={PASSWORD} dbname={DBNAME}"
 
 
 @dataclass
