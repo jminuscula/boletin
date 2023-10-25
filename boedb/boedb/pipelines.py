@@ -1,13 +1,13 @@
 import asyncio
-import contextlib
-import itertools
 from datetime import datetime
 
+from boedb.config import DiarioBoeConfig
 from boedb.client import get_http_client_session
 from boedb.diario_boe.extract import (
     DiarioBoeArticlesExtractor,
     DiarioBoeSummaryExtractor,
 )
+from boedb.diario_boe.transform import DiarioBoeArticleTransformer
 
 
 class Pipeline:
@@ -44,12 +44,36 @@ async def process_diario_boe_for_date(date):
         ).run()
 
         articles = await Pipeline(
-            extractor=DiarioBoeArticlesExtractor(summary, http_session),
-            transformer=None,
+            extractor=DiarioBoeArticlesExtractor(
+                summary,
+                http_session,
+                batch_size=DiarioBoeConfig.ARTICLE_EXTRACT_BATCH_SIZE,
+            ),
+            transformer=DiarioBoeArticleTransformer(
+                http_session, batch_size=DiarioBoeConfig.ARTICLE_TRANSFORM_BATCH_SIZE
+            ),
             loader=None,
         ).run()
 
 
+async def test_diario_boe_article_process():  # pragma: no cover
+    from diario_boe.models import DaySummary, DaySummaryEntry
+
+    entry = DaySummaryEntry("BOE-S-20231023", "BOE-A-2023-21736")
+    summary = DaySummary("BOE-S-20231023", {"fecha": "23/10/2023"}, [entry])
+
+    async with get_http_client_session() as http_session:
+        articles = await Pipeline(
+            extractor=DiarioBoeArticlesExtractor(summary, http_session, batch_size=1),
+            transformer=DiarioBoeArticleTransformer(http_session, batch_size=1),
+            loader=None,
+        ).run()
+
+    article = articles[0]
+    print(f"Article: {article.article_id}")
+    print(f"Title: {article.title}")
+    print(f"Summary: {article.summary[:256]}")
+
+
 if __name__ == "__main__":
-    date = datetime(2023, 10, 23)
-    asyncio.run(process_diario_boe_for_date(date), debug=True)
+    asyncio.run(test_diario_boe_article_process())
