@@ -60,14 +60,15 @@ async def process_diario_boe_for_date(date):
 async def test_diario_boe_article_process():  # pragma: no cover
     from diario_boe.models import DaySummary, DaySummaryEntry
 
-    entry = DaySummaryEntry("BOE-S-20231023", "BOE-A-2023-21736")
+    entry = DaySummaryEntry("BOE-S-20231023", "BOE-A-2023-21730")
     summary = DaySummary("BOE-S-20231023", {"fecha": "23/10/2023"}, [entry])
 
     async with get_http_client_session() as http_session:
         articles = await Pipeline(
             extractor=DiarioBoeArticlesExtractor(summary, http_session, batch_size=1),
             transformer=DiarioBoeArticleTransformer(http_session, batch_size=1),
-            loader=DiarioBoeArticlesLoader(DBConfig.DSN),
+            # loader=DiarioBoeArticlesLoader(DBConfig.DSN),
+            loader=None,
         ).run()
 
     article = articles[0]
