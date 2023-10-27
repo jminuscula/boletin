@@ -23,6 +23,7 @@ exclude_lines = [
   "def __repr__",
   "def __str__",
   "raise NotImplementedError",
+  "logger", "logging",
   "if __name__ == .__main__.:",
 ]
 

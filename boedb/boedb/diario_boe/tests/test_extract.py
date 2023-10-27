@@ -6,22 +6,19 @@ import pytest
 from aioresponses import aioresponses
 
 from boedb.client import get_http_client_session
-from boedb.diario_boe.extract import (
-    DiarioBoeArticlesExtractor,
-    DiarioBoeSummaryExtractor,
-    extract_boe_document,
-)
+from boedb.diario_boe.extract import DiarioBoeArticlesExtractor, DiarioBoeSummaryExtractor, extract_boe_document
 from boedb.diario_boe.models import Article, DaySummary
 
 
 @pytest.mark.asyncio
 async def test_extract_boe_document_makes_request():
-    url = "https://www.boe.es/diario_boe/xml.php?id=doc_id"
+    base_url = "https://www.boe.es/diario_boe/xml.php"
+    expected_url = f"{base_url}?id=doc_id"
     with aioresponses() as mock_server:
-        mock_server.get(url, status=200, body="<xml></xml>")
+        mock_server.get(expected_url, status=200, body="<xml></xml>")
         async with get_http_client_session() as client:
             await extract_boe_document(mock.Mock(), "doc_id", client)
-            mock_server.assert_called_once_with(url)
+            mock_server.assert_called_once_with(base_url, params={"id": "doc_id"})
 
 
 @pytest.mark.asyncio
