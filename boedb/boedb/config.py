@@ -1,5 +1,7 @@
+import logging
 import os
 from dataclasses import dataclass
+from datetime import datetime
 
 from dotenv import dotenv_values
 
@@ -8,6 +10,27 @@ config = {
     **dotenv_values(".env.secret"),  # API keys
     **os.environ,  # environment overrides
 }
+
+
+def get_logger(name="boedb", level=None):
+    format = "{asctime}.{msecs:03.0f} - {name} - {levelname} - {msg}"
+    root_level = level or int(config.get("LOG_LEVEL", logging.INFO))
+    app_level = level or int(config.get("LOG_LEVEL_APP", root_level))
+    datefmt = r"%Y-%m-%dT%H:%M:%S"
+
+    # configure root and third party loggers
+    logging.basicConfig(format=format, level=root_level, datefmt=datefmt, style="{")
+
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(format, datefmt, style="{")
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.addHandler(handler)
+    logger.setLevel(app_level)
+    logger.propagate = False
+
+    return logger
 
 
 @dataclass

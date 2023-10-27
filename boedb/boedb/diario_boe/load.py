@@ -1,3 +1,4 @@
+from boedb.config import get_logger
 from boedb.loaders.db import PostgresDocumentLoader
 
 
@@ -28,6 +29,7 @@ class DiarioBoeArticlesLoader:
 
         self.article_loader = PostgresDocumentLoader(dsn, "es_diario_boe_article", article_cols)
         self.fragment_loader = PostgresDocumentLoader(dsn, "es_diario_boe_article_fragment", fragment_cols)
+        self.logger = get_logger("boedb.diario_boe.articles_loader")
 
     async def __call__(self, objs):
         articles = []
@@ -41,6 +43,9 @@ class DiarioBoeArticlesLoader:
                 loaded_article_ids.add(obj.article_id)
 
         await self.article_loader(articles)
+        self.logger.debug(f"Loaded {len(articles)} articles")
+
         await self.fragment_loader(fragments)
+        self.logger.debug(f"Loaded {len(fragments)} fragments")
 
         return objs

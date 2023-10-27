@@ -1,12 +1,8 @@
 import asyncio
-from datetime import datetime
 
 from boedb.client import get_http_client_session
-from boedb.config import DBConfig, DiarioBoeConfig
-from boedb.diario_boe.extract import (
-    DiarioBoeArticlesExtractor,
-    DiarioBoeSummaryExtractor,
-)
+from boedb.config import DBConfig, DiarioBoeConfig, get_logger
+from boedb.diario_boe.extract import DiarioBoeArticlesExtractor, DiarioBoeSummaryExtractor
 from boedb.diario_boe.load import DiarioBoeArticlesLoader, DiarioBoeSummaryLoader
 from boedb.diario_boe.transform import DiarioBoeArticleTransformer
 
@@ -37,6 +33,9 @@ class Pipeline:
 
 
 async def process_diario_boe_for_date(date):
+    logger = get_logger()
+    logger.info(f"Starting Pipeline for date {date.isoformat()}")
+
     async with get_http_client_session() as http_session:
         summary = await Pipeline(
             extractor=DiarioBoeSummaryExtractor(date, http_session),
@@ -44,7 +43,9 @@ async def process_diario_boe_for_date(date):
             loader=DiarioBoeSummaryLoader(DBConfig.DSN),
         ).run()
 
-        articles = await Pipeline(
+        logger.info(f"Processed summary {summary.summary_id}")
+
+        fragments = await Pipeline(
             extractor=DiarioBoeArticlesExtractor(
                 summary,
                 http_session,
@@ -56,25 +57,29 @@ async def process_diario_boe_for_date(date):
             loader=DiarioBoeArticlesLoader(DBConfig.DSN),
         ).run()
 
+        article_ids = set(f.article_id for f in fragments)
+        logger.info(f"{len(article_ids)} articles, {len(fragments)} fragments processed")
+
 
 async def test_diario_boe_article_process():  # pragma: no cover
     from diario_boe.models import DaySummary, DaySummaryEntry
 
-    entry = DaySummaryEntry("BOE-S-20231023", "BOE-A-2023-21730")
+    logger = get_logger("boedb.test_pipeline")
+    entry = DaySummaryEntry("BOE-S-20231023", "BOE-A-2023-21737")
     summary = DaySummary("BOE-S-20231023", {"fecha": "23/10/2023"}, [entry])
 
+    logger.info("Starting Pipeline")
     async with get_http_client_session() as http_session:
-        articles = await Pipeline(
+        fragments = await Pipeline(
             extractor=DiarioBoeArticlesExtractor(summary, http_session, batch_size=1),
-            transformer=DiarioBoeArticleTransformer(http_session, batch_size=1),
+            # transformer=DiarioBoeArticleTransformer(http_session, batch_size=10),
             # loader=DiarioBoeArticlesLoader(DBConfig.DSN),
+            transformer=None,
             loader=None,
         ).run()
 
-    article = articles[0]
-    print(f"Article: {article.article_id}")
-    print(f"Title: {article.title}")
-    print(f"Summary: {article.summary[:256]}")
+    article_ids = set(f.article_id for f in fragments)
+    logger.info(f"{len(article_ids)} articles, {len(fragments)} fragments processed")
 
 
 if __name__ == "__main__":
