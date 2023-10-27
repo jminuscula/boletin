@@ -3,8 +3,18 @@ from unittest import mock
 
 import pytest
 
-from boedb.diario_boe.load import DiarioBoeArticlesLoader
-from boedb.diario_boe.models import Article
+from boedb.diario_boe.load import DiarioBoeArticlesLoader, DiarioBoeSummaryLoader
+from boedb.diario_boe.models import Article, DaySummary
+
+
+@pytest.mark.asyncio
+@mock.patch("boedb.diario_boe.load.PostgresDocumentLoader.__call__")
+async def test_diario_boe_summary_loader_loads_summary(loader_super_mock):
+    summary = DaySummary("BOE-S-20231023", {"fecha": "23/10/2023"})
+    loader = DiarioBoeSummaryLoader("dsn")
+    await loader(summary)
+
+    loader_super_mock.assert_awaited_once_with([summary])
 
 
 @pytest.mark.asyncio
