@@ -7,6 +7,14 @@ class DiarioBoeSummaryLoader(PostgresDocumentLoader):
         columns = ("summary_id", "pubdate", "metadata")
         super().__init__(dsn, "es_diario_boe_summary", columns)
 
+        self.logger = get_logger("boedb.diario_boe.summary_loader")
+
+    async def __call__(self, summary):
+        loaded = await super().__call__([summary])
+
+        self.logger.debug(f"Loaded summary {summary.summary_id}")
+        return loaded
+
 
 class DiarioBoeArticlesLoader:
     def __init__(self, dsn):
