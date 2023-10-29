@@ -10,22 +10,25 @@ from boedb.diario_boe.models import Article, DaySummary
 @pytest.mark.asyncio
 @mock.patch("boedb.diario_boe.load.PostgresDocumentLoader.__call__")
 async def test_diario_boe_summary_loader_loads_summary(loader_super_mock):
-    summary = DaySummary("BOE-S-20231023", {"fecha": "23/10/2023"})
-    loader = DiarioBoeSummaryLoader("dsn")
-    await loader(summary)
+    serialized = mock.Mock()
+    with mock.patch.object(DaySummary, "as_dict", return_value=serialized):
+        summary = DaySummary("BOE-S-20231023", {"fecha": "23/10/2023"})
+        loader = DiarioBoeSummaryLoader("dsn")
+        await loader(summary)
 
-    loader_super_mock.assert_awaited_once_with([summary])
+    loader_super_mock.assert_awaited_once_with([serialized])
 
 
 @pytest.mark.asyncio
 async def test_diario_boe_article_loader_saves_article_once():
     articles = [
-        Article("article-1", {"fecha_publicacion": "20231023"}, "content", 1, 2),
-        Article("article-1", {"fecha_publicacion": "20231023"}, "content", 2, 2),
+        Article("article-1", "summary-id", {"fecha_publicacion": "20231023"}, "content", 1, 2),
+        Article("article-1", "summary-id", {"fecha_publicacion": "20231023"}, "content", 2, 2),
     ]
 
     article_dict = {
         "article_id": "article-1",
+        "summary_id": "summary-id",
         "pubdate": datetime(2023, 10, 23),
         "metadata": '{"fecha_publicacion": "20231023"}',
         "title": None,
@@ -48,8 +51,8 @@ async def test_diario_boe_article_loader_saves_article_once():
 @pytest.mark.asyncio
 async def test_diario_boe_article_loader_saves_fragments():
     articles = [
-        Article("article-1", {"fecha_publicacion": "20231023"}, "frag-1", 1, 2),
-        Article("article-1", {"fecha_publicacion": "20231023"}, "frag-2", 2, 2),
+        Article("article-1", "summary-id", {"fecha_publicacion": "20231023"}, "frag-1", 1, 2),
+        Article("article-1", "summary-id", {"fecha_publicacion": "20231023"}, "frag-2", 2, 2),
     ]
 
     fragment_dicts = [

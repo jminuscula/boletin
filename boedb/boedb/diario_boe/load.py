@@ -1,8 +1,9 @@
 from boedb.config import get_logger
 from boedb.loaders.db import PostgresDocumentLoader
+from boedb.pipelines.step import BaseStepLoader
 
 
-class DiarioBoeSummaryLoader(PostgresDocumentLoader):
+class DiarioBoeSummaryLoader(PostgresDocumentLoader, BaseStepLoader):
     def __init__(self, dsn):
         columns = ("summary_id", "pubdate", "metadata")
         super().__init__(dsn, "es_diario_boe_summary", columns)
@@ -10,16 +11,17 @@ class DiarioBoeSummaryLoader(PostgresDocumentLoader):
         self.logger = get_logger("boedb.diario_boe.summary_loader")
 
     async def __call__(self, summary):
-        loaded = await super().__call__([summary])
+        await super().__call__([summary.as_dict()])
 
         self.logger.debug(f"Loaded summary {summary.summary_id}")
-        return loaded
+        return summary
 
 
-class DiarioBoeArticlesLoader:
+class DiarioBoeArticlesLoader(BaseStepLoader):
     def __init__(self, dsn):
         article_cols = (
             "article_id",
+            "summary_id",
             "pubdate",
             "metadata",
             "title",
