@@ -22,7 +22,8 @@ class PostgresDocumentLoader:
     def insert(self, cursor, row_dict):
         return self.insert_many(cursor, [row_dict])
 
-    async def __call__(self, objs):
+    async def __call__(self, rows):
         with psycopg.connect(self.dsn) as conn:
             with conn.cursor() as curs:
-                self.insert_many(curs, objs)
+                self.insert_many(curs, rows)
+        return rows
