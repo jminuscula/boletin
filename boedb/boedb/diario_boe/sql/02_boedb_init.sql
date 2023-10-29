@@ -15,6 +15,7 @@ create index es_diario_boe_summary_pubdate_idx on es_diario_boe_summary(pubdate)
 --
 create table es_diario_boe_article (
     article_id varchar(16) primary key,
+    summary_id varchar(14) references es_diario_boe_summary(summary_id),
     pubdate date not null,
     metadata jsonb,
     title text,

@@ -1,3 +1,4 @@
+import asyncio
 import itertools
 from xml.etree import ElementTree
 
@@ -8,12 +9,22 @@ from boedb.processors.batch import BatchProcessor
 BASE_URL = "https://www.boe.es"
 
 
-async def extract_boe_document(cls, doc_id, session):
+async def extract_boe_xml(doc_id, session):
     url = f"{BASE_URL}/diario_boe/xml.php"
     async with session.get(url, params={"id": doc_id}) as resp:
+        resp.raise_for_status()
         xml = await resp.text()
-    root = ElementTree.fromstring(xml)
-    return cls.from_xml(root)
+    return ElementTree.fromstring(xml)
+
+
+async def extract_boe_summary(summary_id, session):
+    xml = await extract_boe_xml(summary_id, session)
+    return DaySummary.from_xml(xml)
+
+
+async def extract_boe_article(article_id, summary_id, session):
+    xml = await extract_boe_xml(article_id, session)
+    return Article.from_xml(xml, summary_id)
 
 
 class DiarioBoeSummaryExtractor:
@@ -24,7 +35,7 @@ class DiarioBoeSummaryExtractor:
 
     async def __call__(self):
         summary_id = f"BOE-S-{self.date.strftime('%Y%m%d')}"
-        doc = await extract_boe_document(DaySummary, summary_id, self.http_session)
+        doc = await extract_boe_summary(summary_id, self.http_session)
 
         self.logger.info(f"Extracted summary {summary_id}")
         return doc
@@ -42,7 +53,7 @@ class DiarioBoeArticlesExtractor(BatchProcessor):
         return self.summary.items
 
     async def process(self, item):
-        doc = await extract_boe_document(Article, item.entry_id, self.http_session)
+        doc = await extract_boe_article(item.entry_id, self.summary.summary_id, self.http_session)
 
         self.logger.debug(f"Extracted article {item.entry_id}")
         return doc
@@ -51,5 +62,5 @@ class DiarioBoeArticlesExtractor(BatchProcessor):
         articles = await self.process_in_batch()
         fragments = list(itertools.chain.from_iterable(a.split() for a in articles))
 
-        self.logger.info(f"Extracted {len(fragments)} fragments for {len(articles)} articles")
+        self.logger.info(f"Extracted {len(fragments)} fragments from {len(articles)} articles")
         return fragments
