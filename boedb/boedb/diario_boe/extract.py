@@ -4,7 +4,7 @@ from xml.etree import ElementTree
 
 from boedb.config import get_logger
 from boedb.diario_boe.models import Article, DaySummary
-from boedb.processors.batch import BatchProcessor
+from boedb.pipelines.step import BaseStepTransformer, BatchProcessorMixin
 
 BASE_URL = "https://www.boe.es"
 
@@ -27,7 +27,7 @@ async def extract_boe_article(article_id, summary_id, session):
     return Article.from_xml(xml, summary_id)
 
 
-class DiarioBoeSummaryExtractor:
+class DiarioBoeSummaryExtractor(BaseStepTransformer):
     def __init__(self, date, http_session):
         self.date = date
         self.http_session = http_session
@@ -41,7 +41,7 @@ class DiarioBoeSummaryExtractor:
         return doc
 
 
-class DiarioBoeArticlesExtractor(BatchProcessor):
+class DiarioBoeArticlesExtractor(BatchProcessorMixin, BaseStepTransformer):
     def __init__(self, summary, http_session, batch_size=10):
         super().__init__(batch_size)
 
