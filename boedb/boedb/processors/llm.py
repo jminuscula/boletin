@@ -1,4 +1,4 @@
-import random
+import logging
 
 from boedb.config import OpenAiConfig
 
@@ -10,6 +10,7 @@ BASE_URL = "https://api.openai.com/v1"
 class OpenAiClient:
     def __init__(self, http_session):
         self.http_session = http_session
+        self.logger = logging.getLogger("boedb.openai")
 
     async def post(self, endpoint, payload):
         headers = {"Authorization": f"Bearer {OpenAiConfig.API_KEY}"}
