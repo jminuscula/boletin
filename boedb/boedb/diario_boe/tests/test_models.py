@@ -6,13 +6,7 @@ from xml.etree import ElementTree
 
 import pytest
 
-from boedb.diario_boe.models import (
-    Article,
-    DaySummary,
-    DaySummaryEntry,
-    DocumentError,
-    check_error,
-)
+from boedb.diario_boe.models import Article, DaySummary, DaySummaryEntry, DocumentError, check_error
 
 
 @pytest.fixture
@@ -79,8 +73,8 @@ def test_day_summary_serializes_to_dict():
     summary = DaySummary("summary_id", metadata, [entry_mock])
 
     assert summary.as_dict() == {
-        "id": "summary_id",
-        "publication_date": datetime(2023, 9, 14),
+        "summary_id": "summary_id",
+        "pubdate": datetime(2023, 9, 14),
         "metadata": '{"fecha": "14/09/2023"}',
     }
 
@@ -98,7 +92,7 @@ def test_day_summary_entry_inits_ok():
 
 
 def test_article_inits_ok(article_data):
-    article = Article.from_xml(article_data)
+    article = Article.from_xml(article_data, "BOE-S-2023-08-26")
     assert article.article_id == "BOE-A-2023-18664"
     assert article.publication_date == datetime(2023, 8, 26)
     assert (
@@ -109,7 +103,7 @@ def test_article_inits_ok(article_data):
 
 
 def test_article_with_multiple_text_inits_ok(article_mtext_data):
-    article = Article.from_xml(article_mtext_data)
+    article = Article.from_xml(article_mtext_data, "BOE-S-2023-09-19")
     assert article.article_id == "BOE-A-2023-19658"
     assert article.publication_date == datetime(2023, 9, 19)
     assert (
@@ -120,7 +114,7 @@ def test_article_with_multiple_text_inits_ok(article_mtext_data):
 
 
 def test_article_splits_produces_articles(article_data):
-    article = Article.from_xml(article_data)
+    article = Article.from_xml(article_data, "summary-id")
     fragment_contents = ["text one", "text two"]
     with mock.patch.object(Article, "_split_text", return_value=fragment_contents):
         fragments = article.split()
@@ -133,7 +127,7 @@ def test_article_splits_produces_articles(article_data):
 
 
 def test_article_splits_doesnt_split_below_max(article_data):
-    article = Article.from_xml(article_data)
+    article = Article.from_xml(article_data, "summary-id")
     fragments = article.split(max_length=1e6)
     assert len(fragments) == 1
 
@@ -154,7 +148,7 @@ def test_article_splits_on_break():
         "fecha_publicacion": "20230921",
         "titulo": "test",
     }
-    article = Article("test-id", metadata, content)
+    article = Article("test-id", "summary_id", metadata, content)
     fragments = article.split(max_length=200)
     assert len(fragments) == 2
     assert fragments[1].content.startswith("<p>Artículo 1.</p>")
@@ -175,7 +169,7 @@ def test_article_splits_on_middle_paragraph():
         "fecha_publicacion": "20230921",
         "titulo": "test",
     }
-    article = Article("test-id", metadata, content)
+    article = Article("test-id", "summary_id", metadata, content)
     fragments = article.split(max_length=200)
     assert len(fragments) == 2
     assert fragments[1].content.startswith("\n<p>B")
@@ -196,7 +190,7 @@ def test_article_splits_content_by_half():
         "fecha_publicacion": "20230921",
         "titulo": "test",
     }
-    article = Article("test-id", metadata, content)
+    article = Article("test-id", "summary_id", metadata, content)
     fragments = article.split(max_length=200)
     assert len(fragments) == 2
     assert fragments[1].content.startswith("###")
@@ -214,7 +208,7 @@ def test_article_splits_content_desperately():
         "fecha_publicacion": "20230921",
         "titulo": "test",
     }
-    article = Article("test-id", metadata, content.strip())
+    article = Article("test-id", "summary_id", metadata, content.strip())
     fragments = article.split(max_length=25)
     assert len(fragments) == 3
     assert fragments[1].content.startswith("###")

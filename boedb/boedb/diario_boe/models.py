@@ -5,11 +5,7 @@ from datetime import datetime
 
 from boedb.config import DiarioBoeConfig
 from boedb.processors.transformers import extract_keys_with_metadata
-from boedb.processors.xml import (
-    find_node_with_ancestors,
-    node_children_to_dict,
-    node_text_content,
-)
+from boedb.processors.xml import find_node_with_ancestors, node_children_to_dict, node_text_content
 
 
 class DocumentError(Exception):
@@ -18,10 +14,10 @@ class DocumentError(Exception):
 
 def check_error(fn):
     @functools.wraps(fn)
-    def from_xml(cls, root):
+    def from_xml(cls, root, *args, **kwargs):
         if root.tag == "error":
             raise DocumentError(root.find(".//descripcion").text or "unknown error")
-        return fn(cls, root)
+        return fn(cls, root, *args, **kwargs)
 
     return from_xml
 
@@ -50,8 +46,8 @@ class DaySummary:
 
     def as_dict(self):
         return {
-            "id": self.summary_id,
-            "publication_date": self.publication_date,
+            "summary_id": self.summary_id,
+            "pubdate": self.publication_date,
             "metadata": json.dumps(self.metadata),
         }
 
@@ -71,8 +67,9 @@ class DaySummaryEntry:
 
 
 class Article:
-    def __init__(self, article_id, metadata, content, sequence=None, total=None):
+    def __init__(self, article_id, summary_id, metadata, content, sequence=None, total=None):
         self.article_id = article_id
+        self.summary_id = summary_id
         self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
         self.metadata = metadata
 
@@ -88,14 +85,14 @@ class Article:
 
     @classmethod
     @check_error
-    def from_xml(cls, root):
+    def from_xml(cls, root, summary_id):
         article_id = root.find(".//identificador").text
         metadata = {
             **node_children_to_dict(root.find("./metadatos")),
             **node_children_to_dict(root.find("./analisis")),
         }
         content = node_text_content(root.find("./texto"))
-        return cls(article_id, metadata, content)
+        return cls(article_id, summary_id, metadata, content)
 
     @staticmethod
     def _split_text_smart(text, max_length):
@@ -151,13 +148,14 @@ class Article:
         fragments = Article._split_text(self.content, max_length)
         total = len(fragments)
         return [
-            self.__class__(self.article_id, self.metadata, fragment, seq, total)
+            self.__class__(self.article_id, self.summary_id, self.metadata, fragment, seq, total)
             for seq, fragment in enumerate(fragments, 1)
         ]
 
     def as_article_dict(self):
         return {
             "article_id": self.article_id,
+            "summary_id": self.summary_id,
             "pubdate": self.publication_date,
             "metadata": json.dumps(self.metadata),
             "title": self.title,
