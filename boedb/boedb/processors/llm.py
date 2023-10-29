@@ -15,6 +15,9 @@ class OpenAiClient:
         headers = {"Authorization": f"Bearer {OpenAiConfig.API_KEY}"}
         request = self.http_session.post(endpoint, json=payload, headers=headers)
         async with request as response:
+            if not response.ok:
+                body = await response.text()
+                self.logger.error(f"Error on {endpoint}: {body}")
             return await response.json()
 
     async def complete(self, prompt, max_tokens=None):
