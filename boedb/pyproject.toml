@@ -6,7 +6,8 @@ profile = "black"
 
 [tool.pytest.ini_options]
 addopts = """
-  --cov=boedb --cov-report=html
+  --cov=boedb --cov-report=html \
+  --ignore=boedb/tests/client_tools
 """
 
 [tool.coverage.run]
