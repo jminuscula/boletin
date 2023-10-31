@@ -139,7 +139,7 @@ class StreamPipeline:
         self.transformer = transformer
         self.loader = loader
 
-        # the pipeline output needs not to be limited, so we can exhaust the pipeline
+        # output needs not to be limited, so we can exhaust the pipeline
         self.results_queue = AsyncShutdownQueue()
 
     async def collect_results(self, queue):
