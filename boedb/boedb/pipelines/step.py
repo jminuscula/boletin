@@ -3,6 +3,7 @@ from abc import abstractmethod
 from itertools import islice
 
 from boedb.config import get_logger
+from boedb.processors.batch import batched
 
 
 class BaseStepExtractor:
@@ -21,18 +22,6 @@ class BaseStepLoader:
     @abstractmethod
     async def __call__(self, items):
         raise NotImplementedError
-
-
-def batched(iterable, n):  # pragma: no cover
-    """Batch data into tuples of length n. The last batch may be shorter.
-    https://docs.python.org/3/library/itertools.html
-    """
-    # batched('ABCDEFG', 3) --> ABC DEF G
-    if n < 1:
-        raise ValueError("n must be at least one")
-    it = iter(iterable)
-    while batch := tuple(islice(it, n)):
-        yield batch
 
 
 class BatchProcessorMixin:
@@ -64,9 +53,11 @@ class BatchProcessorMixin:
 
 class StepPipeline:
     """
-    Orchestrates the ETL pipeline.
-    The extractor, transformer and loader callables are asynchronous functions responsible
-    for implementing their own concurrency mechanisms.
+    Orchestrates the ETL pipeline in steps, so each phase takes the previous result as an
+    argument, and is only started once the previous phase ends.
+
+    The extractor, transformer and loader are asynchronous callables responsible for
+    implementing their own concurrency mechanisms.
 
     :param extractor: async callable to produce items
     :param transformer: async callable to transform extracted items

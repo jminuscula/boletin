@@ -5,6 +5,7 @@ from xml.etree import ElementTree
 from boedb.config import get_logger
 from boedb.diario_boe.models import Article, DaySummary
 from boedb.pipelines.step import BaseStepTransformer, BatchProcessorMixin
+from boedb.processors.batch import batched
 
 BASE_URL = "https://www.boe.es"
 
