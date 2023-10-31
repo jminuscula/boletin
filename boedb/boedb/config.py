@@ -2,17 +2,26 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from dotenv import dotenv_values
 
+CONFIG_BASE_PATH = Path(os.path.abspath(os.path.dirname(__file__))) / Path("..")
+
 config = {
-    **dotenv_values(".env.development"),  # common configurable settings
-    **dotenv_values(".env.secret"),  # API keys
+    **dotenv_values(CONFIG_BASE_PATH / Path(".env.development")),  # common configurable settings
+    **dotenv_values(CONFIG_BASE_PATH / Path(".env.secret")),  # API keys
     **os.environ,  # environment overrides
 }
 
 
+LOGGERS = {}
+
+
 def get_logger(name="boedb", level=None):
+    if name in LOGGERS:
+        return LOGGERS[name]
+
     format = "{asctime}.{msecs:03.0f} - {name} - {levelname} - {msg}"
     root_level = level or int(config.get("LOG_LEVEL", logging.INFO))
     app_level = level or int(config.get("LOG_LEVEL_APP", root_level))
@@ -29,6 +38,7 @@ def get_logger(name="boedb", level=None):
     logger.addHandler(handler)
     logger.setLevel(app_level)
     logger.propagate = False
+    LOGGERS[name] = logger
 
     return logger
 
