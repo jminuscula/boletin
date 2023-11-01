@@ -1,35 +1,13 @@
 import asyncio
-import random
-from abc import abstractmethod
-
-
-class BaseStreamExtractor:
-    @abstractmethod
-    async def start_producer(self, dest_queue):
-        raise NotImplementedError
-
-
-class BaseStreamTransformer:
-    @abstractmethod
-    async def start_consumer(self, source_queue):
-        raise NotImplementedError
-
-    @abstractmethod
-    async def start_producer(self, dest_queue):
-        raise NotImplementedError
-
-
-class BaseStreamLoader:
-    @abstractmethod
-    async def start_consumer(self, source_queue):
-        raise NotImplementedError
-
-    @abstractmethod
-    async def start_producer(self, dest_queue):
-        raise NotImplementedError
+from collections import abc
 
 
 class AsyncShutdownQueue(asyncio.Queue):
+    """
+    Async Queue with a simple shutdown mechanism to indicate that the
+    producer will not put more items, and iteration can be stopped.
+    """
+
     QUEUE_END = object()
 
     def __aiter__(self):
@@ -63,9 +41,9 @@ class StreamPipelineBaseExecutor:
     def get_task_name(self, name):
         return f"Pipeline({self.__class__.__name__}) {name}"
 
-    @abstractmethod
     async def process(self, item):
-        raise NotImplementedError
+        # Base implementation provided for dummy executors
+        return item
 
     async def get_jobs_from_iterable(self, iterable, work_queue):
         for item in iterable:
@@ -76,10 +54,20 @@ class StreamPipelineBaseExecutor:
     async def get_jobs_from_queue(self, entry_queue, work_queue):
         async for item in entry_queue:
             job = item
+
+            # Await the previous phase's process to obtain the work item.
+            # The previous process might have failed, in which case we want to
+            # propagate the exception all the way into the results queue.
             if isinstance(item, asyncio.Task):
-                await item
-                job = item.result()
-            await work_queue.put(job)
+                try:
+                    await item
+                    job = item.result()
+                except Exception as exc:  # pylint: disable=broad-exception-caught
+                    job = exc
+
+            jobs = job if isinstance(job, abc.Iterable) else [job]
+            for job in jobs:
+                await work_queue.put(job)
             entry_queue.task_done()
 
         await work_queue.shutdown()
@@ -87,9 +75,16 @@ class StreamPipelineBaseExecutor:
     async def process_jobs(self, work_queue, results_queue):
         async for item in work_queue:
             job = item
+
+            # if this is the first phase, it may be processing an object obtained directly
+            # from an iterable, in which case we don't need to await it
             if isinstance(item, asyncio.Task):
                 await item
                 job = item.result()
+
+            # run process in the background immediately. Exceptions will be returned as the
+            # task result, and not raised here. Result will be collected by the next phase
+            # or the pipeline collector.
             task = asyncio.create_task(self.process(job), name=self.get_task_name(f"process {job}"))
             await results_queue.put(task)
             work_queue.task_done()
@@ -102,22 +97,14 @@ class StreamPipelineBaseExecutor:
         # buffer to limit the number of process tasks launched.
         work_queue = AsyncShutdownQueue(maxsize=self.concurrency)
 
-        if isinstance(entry_queue_or_iterable, list):
-            jobs_task = asyncio.create_task(
-                self.get_jobs_from_iterable(entry_queue_or_iterable, work_queue),
-                name=self.get_task_name("get jobs from iter"),
-            )
+        if isinstance(entry_queue_or_iterable, abc.Iterable):
+            jobs_task = self.get_jobs_from_iterable(entry_queue_or_iterable, work_queue)
         else:
-            jobs_task = asyncio.create_task(
-                self.get_jobs_from_queue(entry_queue_or_iterable, work_queue),
-                name=self.get_task_name("get jobs from queue"),
-            )
+            jobs_task = self.get_jobs_from_queue(entry_queue_or_iterable, work_queue)
 
-        process_task = asyncio.create_task(
-            self.process_jobs(work_queue, results_queue), name=self.get_task_name("process jobs")
-        )
+        process_task = self.process_jobs(work_queue, results_queue)
 
-        return await asyncio.gather(jobs_task, process_task)
+        return await asyncio.gather(jobs_task, process_task, return_exceptions=True)
 
 
 class StreamPipeline:
@@ -139,13 +126,13 @@ class StreamPipeline:
         self.transformer = transformer
         self.loader = loader
 
-        # output needs not to be limited, so we can exhaust the pipeline
-        self.results_queue = AsyncShutdownQueue()
+        # queue size limits the number of results to be stored before pipeline is consumed
+        self.results_queue = AsyncShutdownQueue(10)
 
     async def collect_results(self, queue):
         async for item in queue:
             await self.results_queue.put(item)
-        await queue.shutdown()
+        await self.results_queue.shutdown()
 
     async def run_pipeline(self, items):
         extracted_queue = self.extractor.get_output_queue()
@@ -155,18 +142,26 @@ class StreamPipeline:
         extract_task = self.extractor.start(items, extracted_queue)
         transform_task = self.transformer.start(extracted_queue, transformed_queue)
         load_task = self.loader.start(transformed_queue, loaded_queue)
+        collect_task = self.collect_results(loaded_queue)
 
-        collect_task = asyncio.create_task(self.collect_results(loaded_queue))
-        return await asyncio.gather(extract_task, transform_task, load_task, collect_task)
+        return await asyncio.gather(
+            extract_task, transform_task, load_task, collect_task, return_exceptions=True
+        )
 
     async def run(self, items):
-        await self.run_pipeline(items)
-        await self.results_queue.shutdown()
+        # Task needs to be run in the background and not awaited here, so the process items can
+        # be generated and awaited in the iteration below
+        run_task = asyncio.create_task(self.run_pipeline(items))
 
         async for item in self.results_queue:
             await item
+            result = item.result()
+            if isinstance(result, Exception):
+                raise result
             yield item.result()
             self.results_queue.task_done()
+
+        await run_task
 
     async def run_and_collect(self, items):
         results = []
