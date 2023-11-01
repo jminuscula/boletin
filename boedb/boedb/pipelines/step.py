@@ -1,6 +1,5 @@
 import asyncio
 from abc import abstractmethod
-from itertools import islice
 
 from boedb.config import get_logger
 from boedb.processors.batch import batched

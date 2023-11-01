@@ -4,5 +4,5 @@ GRANT ALL ON SCHEMA boedb TO boedb;
 
 CREATE DATABASE boedb OWNER boedb;
 
-\c boedb;
+\c boedb boedb;
 CREATE EXTENSION vector;

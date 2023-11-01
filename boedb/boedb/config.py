@@ -1,7 +1,6 @@
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 from dotenv import dotenv_values
@@ -22,16 +21,16 @@ def get_logger(name="boedb", level=None):
     if name in LOGGERS:
         return LOGGERS[name]
 
-    format = "{asctime}.{msecs:03.0f} - {name} - {levelname} - {msg}"
+    fmt = "{asctime}.{msecs:03.0f} - {name} - {levelname} - {msg}"
     root_level = level or int(config.get("LOG_LEVEL", logging.INFO))
     app_level = level or int(config.get("LOG_LEVEL_APP", root_level))
     datefmt = r"%Y-%m-%dT%H:%M:%S"
 
     # configure root and third party loggers
-    logging.basicConfig(format=format, level=root_level, datefmt=datefmt, style="{")
+    logging.basicConfig(format=fmt, level=root_level, datefmt=datefmt, style="{")
 
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(format, datefmt, style="{")
+    formatter = logging.Formatter(fmt, datefmt, style="{")
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(name)
@@ -46,11 +45,14 @@ def get_logger(name="boedb", level=None):
 @dataclass
 class DiarioBoeConfig:
     # Number of concurrent requests to extract Article data from boe.es
-    ARTICLE_EXTRACT_BATCH_SIZE = 10
+    ARTICLE_EXTRACT_CONCURRENCY = 20
 
     # Number of articles to be processed concurrently, including
     # LLM processing through OpenAi's API
-    ARTICLE_TRANSFORM_BATCH_SIZE = 10
+    ARTICLE_TRANSFORM_CONCURRENCY = 10
+
+    # Number of articles to be stored simultaneously
+    ARTICLE_LOAD_CONCURRENCY = 10
 
     # We can't exceed LLM's max context tokens, so the original text
     # plus the generated outcome must be controlled
