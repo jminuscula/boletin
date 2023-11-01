@@ -43,6 +43,6 @@ class HTMLFilter(HTMLParser):
 
     @classmethod
     def clean_html(cls, html):
-        filter = cls()
-        filter.feed(html)
-        return filter.text.strip()
+        html_filter = cls()
+        html_filter.feed(html)
+        return html_filter.text.strip()

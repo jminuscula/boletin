@@ -1,5 +1,5 @@
 [tool.black]
-line-length = 120
+line-length = 110
 
 [tool.isort]
 profile = "black"
@@ -9,6 +9,20 @@ addopts = """
   --cov=boedb --cov-report=html \
   --ignore=boedb/tests/client_tools
 """
+
+[tool.pylint.main]
+disable = [
+  "too-few-public-methods",
+  "signature-differs",
+  "unused-argument",
+  "logging-fstring-interpolation",
+  "missing-function-docstring",
+  "missing-class-docstring",
+  "missing-module-docstring",
+]
+
+[tool.pylint.format]
+max-line-length = 110
 
 [tool.coverage.run]
 source = ["boedb"]

@@ -4,7 +4,6 @@ import re
 from datetime import datetime
 
 from boedb.config import DiarioBoeConfig
-from boedb.processors.transformers import extract_keys_with_metadata
 from boedb.processors.xml import find_node_with_ancestors, node_children_to_dict, node_text_content
 
 

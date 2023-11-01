@@ -23,7 +23,10 @@ class PostgresDocumentLoader:
         return self.insert_many(cursor, [row_dict])
 
     async def __call__(self, rows):
-        with psycopg.connect(self.dsn) as conn:
+        with psycopg.connect(self.dsn) as conn:  # pylint: disable-all
             with conn.cursor() as curs:
-                self.insert_many(curs, rows)
+                if isinstance(rows, list):
+                    self.insert_many(curs, rows)
+                else:
+                    self.insert(curs, rows)
         return rows

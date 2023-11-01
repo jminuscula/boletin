@@ -31,7 +31,7 @@ class OpenAiClient:
 
         data = await self.post(endpoint, payload)
         if choices := data.get("choices"):
-            return choices[0]["message"]["content"]
+            return choices[0]["message"]["content"].strip('"')
 
     async def get_embeddings(self, text):
         endpoint = f"{BASE_URL}/embeddings"
