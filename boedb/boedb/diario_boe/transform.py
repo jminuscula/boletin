@@ -1,16 +1,17 @@
 import time
 
 from boedb.config import get_logger
-from boedb.pipelines.step import BaseStepTransformer, BatchProcessorMixin
+from boedb.pipelines.stream import StreamPipelineBaseExecutor
 from boedb.processors.html import HTMLFilter
 from boedb.processors.llm import OpenAiClient
 
 
-class DiarioBoeArticleTransformer(BatchProcessorMixin, BaseStepTransformer):
-    def __init__(self, http_session, batch_size=10):
-        super().__init__(batch_size=batch_size)
-        self.llm_client = OpenAiClient(http_session)
+class ArticlesTransformer(StreamPipelineBaseExecutor):
+    def __init__(self, concurrency, http_session):
         self.logger = get_logger("boedb.diario_boe.article_transformer")
+        super().__init__(concurrency)
+
+        self.llm_client = OpenAiClient(http_session)
 
     @staticmethod
     def get_title_summary_prompt(title):
@@ -21,7 +22,10 @@ class DiarioBoeArticleTransformer(BatchProcessorMixin, BaseStepTransformer):
             },
             {
                 "role": "system",
-                "content": "You respond in a concise, clear and natural way. You avoid redundant information and excessive detail.",
+                "content": (
+                    "You respond in a concise, clear and natural way. "
+                    "You avoid redundant information and excessive detail."
+                ),
             },
             {
                 "role": "system",
@@ -42,7 +46,10 @@ class DiarioBoeArticleTransformer(BatchProcessorMixin, BaseStepTransformer):
             },
             {
                 "role": "system",
-                "content": "You respond in a concise, clear and natural way. You avoid redundant information and excessive detail.",
+                "content": (
+                    "You respond in a concise, clear and natural way. "
+                    "You avoid redundant information and excessive detail."
+                ),
             },
             {
                 "role": "system",
@@ -56,7 +63,7 @@ class DiarioBoeArticleTransformer(BatchProcessorMixin, BaseStepTransformer):
 
     async def process(self, item):
         start_time = time.time()
-        self.logger.debug(f"Transforming article {item}")
+        self.logger.debug(f"Transforming {item}")
 
         if item.title:
             # LLM will truncate the output on max_tokens, which should be ok since
@@ -78,6 +85,3 @@ class DiarioBoeArticleTransformer(BatchProcessorMixin, BaseStepTransformer):
         end_time = time.time() - start_time
         self.logger.debug(f"Transformed {item} ({end_time:.2f}s)")
         return item
-
-    async def __call__(self, items):
-        return await self.process_in_batch(items)
