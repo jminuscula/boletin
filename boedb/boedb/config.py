@@ -70,3 +70,4 @@ class DBConfig:
 @dataclass
 class OpenAiConfig:
     API_KEY = config["OPENAI_API_KEY"]
+    REQUEST_TIMEOUT = 180

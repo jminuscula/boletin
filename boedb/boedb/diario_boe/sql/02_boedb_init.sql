@@ -4,7 +4,8 @@
 create table es_diario_boe_summary (
     summary_id varchar(14) primary key,
     pubdate date not null,
-    metadata jsonb
+    metadata jsonb,
+    n_articles smallint
 );
 
 create index es_diario_boe_summary_pubdate_idx on es_diario_boe_summary(pubdate);
@@ -22,7 +23,8 @@ create table es_diario_boe_article (
     title_search tsvector generated always as (to_tsvector('spanish', title)) stored,
     title_summary text,
     -- text-embedding-ada-002
-    title_embedding vector(1536)
+    title_embedding vector(1536),
+    n_fragments smallint
 );
 
 create index es_diario_boe_article_pubdate_idx on es_diario_boe_article(pubdate);
@@ -67,3 +69,33 @@ from
     );
 
 create index es_diario_boe_article_lexemes_idx on es_diario_boe_article_lexemes(lexeme);
+
+
+--
+-- BOE DB Integrity
+--
+create view es_diario_boe_summary_incomplete as
+select
+    sum.summary_id,
+    sum.n_articles,
+    count(art.article_id) as n_articles_available
+from
+    es_diario_boe_summary sum
+    left join es_diario_boe_article art on sum.summary_id = art.summary_id
+group by
+    sum.summary_id
+having
+    count(art.article_id) < sum.n_articles;
+
+create view es_diario_boe_article_incomplete as
+select
+    art.article_id,
+    art.n_fragments,
+    count(frag.article_id) as n_fragments_available
+from
+    es_diario_boe_article art
+    left join es_diario_boe_article_fragment frag on art.article_id = frag.article_id
+group by
+    art.article_id
+having
+    count(frag.article_id) < art.n_fragments;

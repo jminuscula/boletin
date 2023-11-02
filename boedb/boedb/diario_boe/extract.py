@@ -49,5 +49,6 @@ class ArticlesExtractor(StreamPipelineBaseExecutor):
     async def process(self, item):
         doc = await extract_boe_article(item.entry_id, item.summary_id, self.http_session)
 
+        fragments = doc.split()
         self.logger.debug(f"Extracted {doc}")
-        return doc.split()
+        return [doc, *fragments]
