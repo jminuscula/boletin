@@ -14,7 +14,9 @@ class OpenAiClient:
 
     async def post(self, endpoint, payload):
         headers = {"Authorization": f"Bearer {OpenAiConfig.API_KEY}"}
-        request = self.http_session.post(endpoint, json=payload, headers=headers)
+        request = self.http_session.post(
+            endpoint, json=payload, headers=headers, timeout=OpenAiConfig.REQUEST_TIMEOUT
+        )
         async with request as response:
             if not response.ok:
                 body = await response.text()
