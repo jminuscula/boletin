@@ -48,6 +48,7 @@ class DaySummary:
             "summary_id": self.summary_id,
             "pubdate": self.publication_date,
             "metadata": json.dumps(self.metadata),
+            "n_articles": len(self.items),
         }
 
     def __repr__(self):
@@ -66,7 +67,7 @@ class DaySummaryEntry:
 
 
 class Article:
-    def __init__(self, article_id, summary_id, metadata, content, sequence=None, total=None):
+    def __init__(self, article_id, summary_id, metadata, content, sequence=None, n_fragments=None):
         self.article_id = article_id
         self.summary_id = summary_id
         self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
@@ -77,10 +78,7 @@ class Article:
         self.title_embedding = None
 
         self.content = content
-        self.summary = None
-        self.embedding = None
-        self.sequence = sequence
-        self.total = total
+        self.n_fragments = n_fragments
 
     @classmethod
     @check_error
@@ -145,13 +143,14 @@ class Article:
 
     def split(self, max_length=DiarioBoeConfig.ARTICLE_FRAGMENT_MAX_LENGTH):
         fragments = Article._split_text(self.content, max_length)
-        total = len(fragments)
+        n_fragments = len(fragments)
+        self.n_fragments = n_fragments
         return [
-            self.__class__(self.article_id, self.summary_id, self.metadata, fragment, seq, total)
+            ArticleFragment(self.article_id, fragment, seq, n_fragments)
             for seq, fragment in enumerate(fragments, 1)
         ]
 
-    def as_article_dict(self):
+    def as_dict(self):
         return {
             "article_id": self.article_id,
             "summary_id": self.summary_id,
@@ -160,9 +159,24 @@ class Article:
             "title": self.title,
             "title_summary": self.title_summary,
             "title_embedding": self.title_embedding,
+            "n_fragments": self.n_fragments,
         }
 
-    def as_fragment_dict(self):
+    def __repr__(self):
+        return f"Article({self.article_id}, {self.n_fragments}fr)"
+
+
+class ArticleFragment:
+    def __init__(self, article_id, content, sequence, total):
+        self.article_id = article_id
+        self.content = content
+        self.sequence = sequence
+        self.total = total
+
+        self.summary = None
+        self.embedding = None
+
+    def as_dict(self):
         return {
             "article_id": self.article_id,
             "sequence": self.sequence,
@@ -173,4 +187,4 @@ class Article:
 
     def __repr__(self):
         seq = f", {self.sequence}/{self.total}" if self.sequence else ""
-        return f"Article({self.article_id}{seq})"
+        return f"ArticleFragment({self.article_id}{seq})"
