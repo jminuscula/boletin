@@ -9,7 +9,7 @@ class HTMLFilter(HTMLParser):
       - `PARAGRAPH_TAGS` add a breakline
     """
 
-    REMOVE_TAGS = {"table"}
+    REMOVE_TAGS = {"table", "tr", "td"}
     INDENT_TAGS = {"ul", "li"}
     PARAGRAPH_TAGS = {"br", "p", "section", "article", "h1", "h2", "h3", "h4", "ul"}
 
