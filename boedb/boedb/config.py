@@ -45,14 +45,14 @@ def get_logger(name="boedb", level=None):
 @dataclass
 class DiarioBoeConfig:
     # Number of concurrent requests to extract Article data from boe.es
-    ARTICLE_EXTRACT_CONCURRENCY = 20
+    ARTICLE_EXTRACT_CONCURRENCY = 100
 
     # Number of articles to be processed concurrently, including
     # LLM processing through OpenAi's API
-    ARTICLE_TRANSFORM_CONCURRENCY = 10
+    ARTICLE_TRANSFORM_CONCURRENCY = 100
 
     # Number of articles to be stored simultaneously
-    ARTICLE_LOAD_CONCURRENCY = 10
+    ARTICLE_LOAD_CONCURRENCY = 100
 
     # We can't exceed LLM's max context tokens, so the original text
     # plus the generated outcome must be controlled
@@ -70,4 +70,5 @@ class DBConfig:
 @dataclass
 class OpenAiConfig:
     API_KEY = config["OPENAI_API_KEY"]
-    REQUEST_TIMEOUT = 180
+    REQUEST_TIMEOUT = 300
+    REQUEST_MAX_RETRIES = 3
