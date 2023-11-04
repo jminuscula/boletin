@@ -67,7 +67,9 @@ class StreamPipelineBaseExecutor:
 
             jobs = job if isinstance(job, abc.Iterable) else [job]
             for job in jobs:
-                await work_queue.put(job)
+                # Pipeline components may decide to skip an item
+                if job is not None:
+                    await work_queue.put(job)
             entry_queue.task_done()
 
         await work_queue.shutdown()

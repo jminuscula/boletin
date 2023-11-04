@@ -16,7 +16,7 @@ create index es_diario_boe_summary_pubdate_idx on es_diario_boe_summary(pubdate)
 --
 create table es_diario_boe_article (
     article_id varchar(16) primary key,
-    summary_id varchar(14) references es_diario_boe_summary(summary_id),
+    summary_id varchar(14) references es_diario_boe_summary(summary_id) on delete cascade,
     pubdate date not null,
     metadata jsonb,
     title text,
@@ -32,7 +32,7 @@ create index es_diario_boe_title_search_idx on es_diario_boe_article using gin(t
 
 
 create table es_diario_boe_article_fragment (
-    article_id varchar(16) references es_diario_boe_article(article_id),
+    article_id varchar(16) references es_diario_boe_article(article_id) on delete cascade,
     sequence smallint,
     content text,
     content_search tsvector generated always as (to_tsvector('spanish', content)) stored,
@@ -99,3 +99,10 @@ group by
     art.article_id
 having
     count(frag.article_id) < art.n_fragments;
+
+create procedure es_diario_boe_delete_incomplete_articles()
+begin atomic
+    delete from es_diario_boe_article where article_id in (
+        select article_id from es_diario_boe_article_incomplete
+    );
+end;
