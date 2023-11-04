@@ -27,26 +27,36 @@ async def extract_boe_article(article_id, summary_id, session):
 
 
 class SummaryExtractor(BaseStepExtractor):
-    def __init__(self, date, http_session):
+    def __init__(self, date, http_session, should_skip=None):
         self.date = date
         self.http_session = http_session
+        self.should_skip = should_skip
         self.logger = get_logger("boedb.diario_boe.summary_extractor")
 
     async def __call__(self):
         summary_id = f"BOE-S-{self.date.strftime('%Y%m%d')}"
         doc = await extract_boe_summary(summary_id, self.http_session)
 
+        if self.should_skip is not None and self.should_skip(doc):
+            self.logger.info(f"Skipping {doc.summary_id}")
+            return
+
         self.logger.info(f"Extracted summary {summary_id}")
         return doc
 
 
 class ArticlesExtractor(StreamPipelineBaseExecutor):
-    def __init__(self, concurrency, http_session):
+    def __init__(self, concurrency, http_session, should_skip=None):
         self.logger = get_logger("boedb.diario_boe.article_extractor")
         self.http_session = http_session
+        self.should_skip = should_skip
         super().__init__(concurrency)
 
     async def process(self, item):
+        if self.should_skip is not None and self.should_skip(item):
+            self.logger.debug(f"Skipping {item}")
+            return
+
         doc = await extract_boe_article(item.entry_id, item.summary_id, self.http_session)
 
         fragments = doc.split()

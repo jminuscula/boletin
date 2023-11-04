@@ -13,17 +13,23 @@ async def process_diario_boe_for_date(date):
     async with get_http_client_session() as http_session:
         summary_pipeline = DiarioBoeSummaryPipeline(date, http_session)
         summary = await summary_pipeline.run()
+        if summary is None:
+            return
+
         logger.info(f"Processed summary {summary.summary_id} ({len(summary.items)} entries)")
 
-        fragments_pipeline = DiarioBoeArticlesPipeline(http_session)
-        processed = await fragments_pipeline.run_and_collect(summary.items)
+        processed = 0
+        article_ids = set()
+        articles_pipeline = DiarioBoeArticlesPipeline(http_session)
+        async for item in articles_pipeline.run(summary.items):
+            processed += 1
+            article_ids.add(item.article_id)
 
-        article_ids = set(f.article_id for f in processed)
-        logger.info(f"{len(article_ids)} articles, {len(processed)} fragments processed")
+        logger.info(f"{len(article_ids)} articles, {processed} items processed")
 
 
 if __name__ == "__main__":
-    target_date = datetime.today() - timedelta(days=1)
-    while target_date >= datetime(2023, 10, 31):
+    target_date = datetime(2023, 10, 28)
+    while target_date >= datetime(2023, 10, 27):
         asyncio.run(process_diario_boe_for_date(target_date))
         target_date -= timedelta(days=1)

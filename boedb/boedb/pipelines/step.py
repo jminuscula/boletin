@@ -70,8 +70,8 @@ class StepPipeline:
 
     async def run(self):
         items = await self.extractor()
-        if self.transformer:
+        if items is not None and self.transformer:
             items = await self.transformer(items)
-        if self.loader:
+        if items is not None and self.loader:
             items = await self.loader(items)
         return items
