@@ -78,6 +78,13 @@ class StreamPipelineBaseExecutor:
         async for item in work_queue:
             job = item
 
+            # if the previous phase failed, abort the pipeline and propagate the exception
+            if isinstance(item, Exception):
+                await results_queue.put(item)
+                await results_queue.shutdown()
+                work_queue.task_done()
+                return
+
             # if this is the first phase, it may be processing an object obtained directly
             # from an iterable, in which case we don't need to await it
             if isinstance(item, asyncio.Task):
@@ -156,10 +163,10 @@ class StreamPipeline:
         run_task = asyncio.create_task(self.run_pipeline(items))
 
         async for item in self.results_queue:
+            if isinstance(item, Exception):
+                raise item
+
             await item
-            result = item.result()
-            if isinstance(result, Exception):
-                raise result
             yield item.result()
             self.results_queue.task_done()
 
