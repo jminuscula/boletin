@@ -13,7 +13,7 @@ class DiarioBoeSummaryPipeline(StepPipeline):
 
         extractor = SummaryExtractor(date, http_session, should_skip=self.get_extract_filter())
         transformer = None
-        loader = SummaryLoader(DBConfig.DSN, should_skip=self.get_load_filter())
+        loader = SummaryLoader(should_skip=self.get_load_filter())
 
         super().__init__(extractor, transformer, loader)
 
