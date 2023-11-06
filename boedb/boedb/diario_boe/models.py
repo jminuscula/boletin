@@ -117,15 +117,15 @@ class Article:
             # in case there's multiple split points, use the middle one
             # as it will yield the two smallest fragments
             matches = list(re.finditer(break_exp, text, re.IGNORECASE))
-            while match := matches and matches.pop(len(matches) // 2):
+            while match := matches and matches.pop(len(matches) // 2 - 1):
                 # only split if break point doesn't yield highly unequal chunks
                 if 0.2 < (match.start() / len(text)) < 0.8:
                     return text[: match.start()], text[match.start() :]
 
         # try to split naively on middle paragraph to avoid breaking html
         closing_tags = list(re.finditer("</(.*?)>", text))
-        if closing_tags:
-            match = closing_tags[len(closing_tags) // 2]
+        if len(closing_tags) > 1:
+            match = closing_tags[len(closing_tags) // 2 - 1]
             return text[: match.end()], text[match.end() :]
 
         # split desperately
