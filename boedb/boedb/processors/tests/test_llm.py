@@ -4,12 +4,16 @@ import pytest
 from aioresponses import aioresponses
 
 from boedb.client import get_http_client_session
+from boedb.config import OpenAiConfig
 from boedb.processors.llm import OpenAiClient
 
 
 @pytest.mark.asyncio
 @mock.patch("boedb.config.OpenAiConfig.API_KEY")
-async def test_open_ai_client_post(api_key, http_session_mock):
+@mock.patch("boedb.processors.llm.HttpClient")
+async def test_open_ai_client_post(HttpClientMock, api_key, http_session_mock):
+    client_mock = mock.AsyncMock()
+    HttpClientMock.return_value = client_mock
     client = OpenAiClient(http_session=http_session_mock)
 
     endpoint = "/test"
@@ -17,7 +21,11 @@ async def test_open_ai_client_post(api_key, http_session_mock):
     headers = {"Authorization": f"Bearer {api_key}"}
 
     await client.post(endpoint, payload)
-    http_session_mock.post.assert_called_once_with(endpoint, json=payload, headers=headers)
+
+    HttpClientMock.assert_called_once_with(
+        http_session_mock, "https://api.openai.com/v1", headers=headers, timeout=OpenAiConfig.REQUEST_TIMEOUT
+    )
+    client_mock.post.assert_awaited_once_with(endpoint, payload)
 
 
 @pytest.mark.asyncio
