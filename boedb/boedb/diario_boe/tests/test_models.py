@@ -1,3 +1,4 @@
+import json
 import os.path
 import textwrap
 from datetime import datetime
@@ -6,7 +7,14 @@ from xml.etree import ElementTree
 
 import pytest
 
-from boedb.diario_boe.models import Article, DaySummary, DaySummaryEntry, DocumentError, check_error
+from boedb.diario_boe.models import (
+    Article,
+    ArticleFragment,
+    DaySummary,
+    DaySummaryEntry,
+    DocumentError,
+    check_error,
+)
 
 
 @pytest.fixture
@@ -106,6 +114,31 @@ def test_article_inits_ok(article_data):
         == """Resolución de 5 de agosto de 2023, conjunta de las Subsecretarías de Trabajo y Economía Social y de Inclusión, Seguridad Social y Migraciones, por la que se resuelve parcialmente la convocatoria de libre designación, efectuada por Resolución de 24 de marzo de 2023."""
     )
     assert article.content.startswith("""<p class="parrafo">Por Resolución de 24 de marzo de 2023""")
+
+
+def test_article_as_dict():
+    article_id = "article_id"
+    summary_id = "summary_id"
+    metadata = {"titulo": "title", "fecha_publicacion": "20231102"}
+    content = "content"
+    n_fragments = 1
+    title_summary = "title_summary"
+    title_embedding = [0.1, 0.2]
+
+    article = Article(article_id, summary_id, metadata, content, n_fragments)
+    article.title_summary = title_summary
+    article.title_embedding = title_embedding
+
+    assert article.as_dict() == {
+        "article_id": article_id,
+        "summary_id": summary_id,
+        "pubdate": datetime(2023, 11, 2),
+        "metadata": json.dumps(metadata),
+        "title": metadata["titulo"],
+        "title_summary": title_summary,
+        "title_embedding": title_embedding,
+        "n_fragments": n_fragments,
+    }
 
 
 def test_article_with_multiple_text_inits_ok(article_mtext_data):
@@ -239,3 +272,25 @@ def test_article_splits_content_desperately():
     fragments = article.split(max_length=25)
     assert len(fragments) == 3
     assert fragments[1].content.startswith("###")
+
+
+def test_fragment_as_dict():
+    article_id = "article_id"
+    summary_id = "summary_id"
+    content = "content"
+    sequence = 1
+    total = 2
+    summary = "content summary"
+    embedding = [0.1, 0.2]
+
+    fragment = ArticleFragment(article_id, content, sequence, total)
+    fragment.summary = summary
+    fragment.embedding = embedding
+
+    assert fragment.as_dict() == {
+        "article_id": article_id,
+        "sequence": sequence,
+        "content": content,
+        "summary": summary,
+        "embedding": embedding,
+    }
