@@ -2,6 +2,7 @@ import asyncio
 import re
 import ssl
 import urllib.parse
+import uuid
 
 import aiohttp
 import certifi
@@ -35,10 +36,10 @@ class HttpRetryManager:
         if next_attempt < self.max_attempts:
             timeout = self.get_response_wait_time(request, response, req_id)
             if timeout:
-                self.logger.debug(f"Waiting {timeout}s as per response headers")
+                self.logger.debug(f"Request {req_id} waiting {timeout}s as per response headers")
             else:
                 timeout = self.get_backoff_wait_time(next_attempt)
-                self.logger.debug(f"Waiting {timeout}s for retry attempt {next_attempt}")
+                self.logger.debug(f"Request {req_id} waiting {timeout}s for retry attempt {next_attempt}")
             await asyncio.sleep(timeout)
             return True
 
@@ -107,7 +108,7 @@ class HttpClient:
                 raise exc from None
 
     async def get(self, path, params=None, parse_response=True, req_id=None):
-        req_id = req_id or hash(object())
+        req_id = req_id or uuid.uuid4().hex[:8]
         url = self.get_url(path)
         self.logger.debug(f"Request {req_id}: GET({url})")
         req_params = {
@@ -120,7 +121,7 @@ class HttpClient:
         return await self.handle_request(req_params, req_id, parse_response)
 
     async def post(self, path, json, params=None, parse_response=True, req_id=None):
-        req_id = req_id or hash(object())
+        req_id = req_id or uuid.uuid4().hex
         url = self.get_url(path)
         self.logger.debug(f"Request {req_id}: POST({url})")
         req_params = {
