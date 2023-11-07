@@ -1,24 +1,26 @@
 import asyncio
 import logging
 
-from boedb.client import get_http_client_session
+from boedb.client import HttpClient, get_http_client_session
 
 BASE_TEST_URL = "http://0.0.0.0:8080"
 
 
 async def make_request(client):
-    url = f"{BASE_TEST_URL}/status/502"
-    async with client.get(url) as req:
-        req.raise_for_status()
-        return await req.text()
+    url = f"{BASE_TEST_URL}/status/alternate"
+    return await client.get(url, json=False)
 
 
 async def test_make_request():
-    async with get_http_client_session() as client:
+    async with get_http_client_session() as session:
+        client = HttpClient(session)
         async with asyncio.TaskGroup() as tg:
             task = tg.create_task(make_request(client))
 
-        print(task.result())
+        try:
+            print(task.result())
+        except Exception as exc:
+            print("error")
 
 
 if __name__ == "__main__":
