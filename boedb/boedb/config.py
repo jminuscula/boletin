@@ -60,6 +60,18 @@ class DiarioBoeConfig:
 
 
 @dataclass
+class HttpConfig:
+    # Default request timeout
+    REQUEST_TIMEOUT = 30
+
+    # Number of default attempts to retry a failing request
+    MAX_ATTEMPTS = 3
+
+    # Number of seconds to increase wait time on each retry
+    BASE_RETRY_WAIT_TIME = 10
+
+
+@dataclass
 class DBConfig:
     USER = config["PG_USER"]
     PASSWORD = config["PG_PASSWORD"]
