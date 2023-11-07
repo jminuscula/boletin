@@ -1,8 +1,9 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from boedb.client import get_http_client_session
+from boedb.client import HttpClient, get_http_client_session
 from boedb.config import get_logger
+from boedb.diario_boe.models import DocumentError
 from boedb.diario_boe.pipelines import DiarioBoeArticlesPipeline, DiarioBoeSummaryPipeline
 
 
@@ -12,7 +13,13 @@ async def process_diario_boe_for_date(date):
 
     async with get_http_client_session() as http_session:
         summary_pipeline = DiarioBoeSummaryPipeline(date, http_session)
-        summary = await summary_pipeline.run()
+        try:
+            summary = await summary_pipeline.run()
+        except DocumentError:
+            logger.warning(f"Summary for {date} not found")
+            return
+
+        # summary might have been skipped
         if summary is None:
             return
 
@@ -29,7 +36,7 @@ async def process_diario_boe_for_date(date):
 
 
 if __name__ == "__main__":
-    target_date = datetime(2023, 10, 28)
-    while target_date >= datetime(2023, 10, 27):
+    target_date = datetime(2023, 11, 1)
+    while target_date >= datetime(2023, 10, 1):
         asyncio.run(process_diario_boe_for_date(target_date))
         target_date -= timedelta(days=1)

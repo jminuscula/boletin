@@ -60,7 +60,7 @@ class DiarioBoeArticlesPipeline(StreamPipeline):
             should_skip=self.get_articles_filter(),
         )
         transformer = ArticlesTransformer(DiarioBoeConfig.ARTICLE_TRANSFORM_CONCURRENCY, http_session)
-        loader = ArticlesLoader(DiarioBoeConfig.ARTICLE_LOAD_CONCURRENCY, DBConfig.DSN)
+        loader = ArticlesLoader(DiarioBoeConfig.ARTICLE_LOAD_CONCURRENCY)
 
         super().__init__(extractor, transformer, loader)
 
