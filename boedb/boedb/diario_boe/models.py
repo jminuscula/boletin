@@ -67,7 +67,7 @@ class DaySummaryEntry:
 
 
 class Article:
-    def __init__(self, article_id, summary_id, metadata, content, sequence=None, n_fragments=None):
+    def __init__(self, article_id, summary_id, metadata, content, n_fragments=None):
         self.article_id = article_id
         self.summary_id = summary_id
         self.publication_date = datetime.strptime(metadata["fecha_publicacion"], "%Y%m%d")
