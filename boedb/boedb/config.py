@@ -58,6 +58,9 @@ class DiarioBoeConfig:
     # plus the generated outcome must be controlled
     ARTICLE_FRAGMENT_MAX_LENGTH = 8192
 
+    TITLE_SUMMARIZATION_MIN_LENGTH = 100
+    CONTENT_SUMMARIZATION_MIN_LENGTH = 1000
+
 
 @dataclass
 class HttpConfig:
