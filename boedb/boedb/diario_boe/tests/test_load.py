@@ -38,6 +38,7 @@ async def test_summary_loader_skips_summary(get_db_client_mock):
 
 
 @pytest.mark.asyncio
+@mock.patch("boedb.diario_boe.load.get_db_client", mock.Mock())
 async def test_articles_loader_processes_article_item():
     serialized = mock.Mock()
     article = Article("article-id", "summary-id", {"fecha_publicacion": "20231101"}, "content")
@@ -57,6 +58,7 @@ async def test_articles_loader_processes_article_item():
 
 
 @pytest.mark.asyncio
+@mock.patch("boedb.diario_boe.load.get_db_client", mock.Mock())
 async def test_articles_loader_processes_fragment_item():
     serialized = mock.Mock()
     fragment = ArticleFragment("article-id", "content", 1, 10)
