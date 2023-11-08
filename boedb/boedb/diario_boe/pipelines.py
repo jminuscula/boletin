@@ -55,16 +55,16 @@ class DiarioBoeArticlesPipeline(StreamPipeline):
         self.db_client = get_db_client()
 
         extractor = ArticlesExtractor(
-            DiarioBoeConfig.ARTICLE_TRANSFORM_CONCURRENCY,
+            DiarioBoeConfig.ARTICLE_EXTRACT_CONCURRENCY,
             http_session,
-            should_skip=self.get_articles_filter(),
+            should_skip=self.get_extract_filter(),
         )
         transformer = ArticlesTransformer(DiarioBoeConfig.ARTICLE_TRANSFORM_CONCURRENCY, http_session)
         loader = ArticlesLoader(DiarioBoeConfig.ARTICLE_LOAD_CONCURRENCY)
 
         super().__init__(extractor, transformer, loader)
 
-    def get_articles_filter(self):
+    def get_extract_filter(self):
         sql = """
             select
                 article_id
