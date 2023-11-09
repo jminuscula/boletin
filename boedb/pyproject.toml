@@ -10,6 +10,11 @@ addopts = """
   --ignore=boedb/tests/client_tools
 """
 
+markers = [
+  "integration: tests running whole systems with minimal mocking"
+]
+
+
 [tool.pylint.main]
 disable = [
   "too-few-public-methods",

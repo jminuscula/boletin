@@ -1,6 +1,8 @@
 import asyncio
 from collections import abc
 
+from boedb.config import get_logger
+
 
 class AsyncShutdownQueue(asyncio.Queue):
     """
@@ -134,6 +136,7 @@ class StreamPipeline:
         self.extractor = extractor
         self.transformer = transformer
         self.loader = loader
+        self.logger = get_logger("boedb.streampipeline")
 
         # queue size limits the number of results to be stored before pipeline is consumed
         self.results_queue = AsyncShutdownQueue(10)
@@ -164,6 +167,7 @@ class StreamPipeline:
 
         async for item in self.results_queue:
             if isinstance(item, Exception):
+                await self.shutdown_and_cleanup()
                 raise item
 
             await item
@@ -177,3 +181,21 @@ class StreamPipeline:
         async for item in self.run(items):
             results.append(item)
         return results
+
+    async def shutdown_and_cleanup(self):
+        producing_tasks = {
+            "StreamPipeline.run_pipeline",
+            "StreamPipeline.collect_results",
+            "StreamPipelineBaseExecutor.start",
+            "StreamPipelineBaseExecutor.process_jobs",
+            "StreamPipelineBaseExecutor.get_jobs_from_queue",
+        }
+        for task in asyncio.all_tasks():
+            coro = task.get_coro()
+            name = f"{task.get_name()}({coro.__qualname__})"
+            if coro.__qualname__ in producing_tasks:
+                self.logger.debug(f"Cancelling task {name}")
+                task.cancel()
+            elif not coro.__qualname__.startswith("test"):
+                self.logger.debug(f"Waiting to complete task {name}")
+                await task
