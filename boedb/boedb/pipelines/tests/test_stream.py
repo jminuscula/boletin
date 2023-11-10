@@ -130,8 +130,29 @@ async def test_stream_pipeline_run_raises_with_exception():
     )
 
     with pytest.raises(ValueError):
-        async for item in pipeline.run([1, 2, 3]):
-            print(item)
+        await pipeline.run_and_collect([1, 2, 3])
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_stream_pipeline_waits_for_tasks_on_shutdown():
+    error = ValueError()
+
+    class FailingPhase(StreamPipelineBaseExecutor):
+        async def process(self, _):
+            raise error
+
+    pipeline = StreamPipeline(
+        extractor=StreamPipelineBaseExecutor(1),
+        transformer=FailingPhase(1),
+        loader=StreamPipelineBaseExecutor(1),
+    )
+
+    with pytest.raises(ValueError):
+        task = asyncio.create_task(asyncio.sleep(0.01))
+        await pipeline.run_and_collect([1, 2, 3])
+
+    assert task.done() is True
 
 
 @pytest.mark.asyncio

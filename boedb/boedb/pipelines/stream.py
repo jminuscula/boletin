@@ -87,12 +87,6 @@ class StreamPipelineBaseExecutor:
                 work_queue.task_done()
                 return
 
-            # if this is the first phase, it may be processing an object obtained directly
-            # from an iterable, in which case we don't need to await it
-            if isinstance(item, asyncio.Task):
-                await item
-                job = item.result()
-
             # run process in the background immediately. Exceptions will be returned as the
             # task result, and not raised here. Result will be collected by the next phase
             # or the pipeline collector.
