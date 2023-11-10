@@ -23,11 +23,13 @@ class PostgresClient:
 
     def execute(self, sql, vars=None):
         with self.pool.connection() as conn:  # pylint: disable-all
-            with conn.cursor() as cursor:
-                if isinstance(vars, Iterable):
-                    yield from cursor.executemany(sql, vars)
+            with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+                if isinstance(vars, Iterable) and len(vars) and isinstance(vars[0], Iterable):
+                    cursor.executemany(sql, vars)
                 else:
-                    yield from cursor.execute(sql, vars)
+                    cursor.execute(sql, vars)
+                if cursor.rownumber is not None:
+                    return list(cursor)
 
     def insert(self, table, row_dict, columns=None):
         return self.insert_many(table, [row_dict], columns)
