@@ -36,7 +36,7 @@ async def process_diario_boe_for_date(date):
 
 
 if __name__ == "__main__":
-    target_date = datetime(2023, 11, 1)
-    while target_date >= datetime(2023, 10, 1):
+    target_date = datetime(2023, 11, 2)
+    while target_date >= datetime(2023, 11, 1):
         asyncio.run(process_diario_boe_for_date(target_date))
         target_date -= timedelta(days=1)
