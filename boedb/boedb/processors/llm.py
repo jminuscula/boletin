@@ -17,6 +17,7 @@ class OpenAiClient:
             http_session, BASE_URL, headers=headers, timeout=OpenAiConfig.REQUEST_TIMEOUT
         )
         self.logger = logging.getLogger("boedb.openai")
+        self.total_tokens = 0
 
     async def post(self, endpoint, payload):
         return await self.client.post(endpoint, payload)
@@ -30,6 +31,11 @@ class OpenAiClient:
         }
 
         data = await self.post(endpoint, payload)
+
+        tokens = data["usage"]["total_tokens"]
+        self.total_tokens += tokens
+        self.logger.debug(f"Used {tokens} tokens ({self.total_tokens} this run).")
+
         if choices := data.get("choices"):
             return choices[0]["message"]["content"].strip('"')
 
@@ -41,5 +47,10 @@ class OpenAiClient:
         }
 
         data = await self.post(endpoint, payload)
+
+        tokens = data["usage"]["total_tokens"]
+        self.total_tokens += tokens
+        self.logger.debug(f"Used {tokens} tokens ({self.total_tokens} this run).")
+
         if data := data.get("data"):
             return data[0]["embedding"]

@@ -24,10 +24,14 @@ class PostgresClient:
     def execute(self, sql, vars=None):
         with self.pool.connection() as conn:  # pylint: disable-all
             with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
-                if isinstance(vars, Iterable) and len(vars) and isinstance(vars[0], Iterable):
-                    cursor.executemany(sql, vars)
-                else:
-                    cursor.execute(sql, vars)
+                cursor.execute(sql, vars)
+                if cursor.rownumber is not None:
+                    return list(cursor)
+
+    def execute_many(self, sql, vars=None):
+        with self.pool.connection() as conn:  # pylint: disable-all
+            with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+                cursor.executemany(sql, vars)
                 if cursor.rownumber is not None:
                     return list(cursor)
 
